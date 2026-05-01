@@ -1,0 +1,16 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+instance/
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+*.db
+.ruff_cache/
+.omc/
+go2rtc.exe
+go2rtc.zip

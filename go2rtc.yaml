@@ -1,0 +1,5 @@
+xiaomi:
+  "YOUR_XIAOMI_USER_ID": "YOUR_AUTH_TOKEN"
+
+streams:
+  camera_1: xiaomi://YOUR_USER_ID:cn@CAMERA_IP?did=DEVICE_ID&model=DEVICE_MODEL

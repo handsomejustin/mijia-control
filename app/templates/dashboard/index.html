@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}仪表板 - 米家控制{% endblock %}
+
+{% block content %}
+<div class="mb-8 flex items-center justify-between">
+    <div>
+        <h1 class="font-heading text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">仪表板</h1>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">{{ homes|length }} 个家庭 · {{ devices|length }} 台设备</p>
+    </div>
+    <a href="{{ url_for('web.devices', refresh='true') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-900/20 hover:bg-brand-100 dark:hover:bg-brand-900/30 transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        刷新设备
+    </a>
+</div>
+
+{% if not xiaomi_status.linked %}
+<div class="mb-8 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/15 border border-amber-200 dark:border-amber-800/50">
+    <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div>
+            <p class="text-amber-800 dark:text-amber-200 text-sm font-medium">您还未绑定小米账号</p>
+            <a href="{{ url_for('web.link_xiaomi') }}" class="text-amber-700 dark:text-amber-300 text-sm underline underline-offset-2 hover:no-underline">点击绑定</a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Stat Cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-8">
+    <div class="bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 p-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
+                <svg class="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            </div>
+            <div>
+                <p class="text-2xl font-heading font-bold text-slate-900 dark:text-white">{{ homes|length }}</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">家庭</p>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 p-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center">
+                <svg class="w-5 h-5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+            </div>
+            <div>
+                <p class="text-2xl font-heading font-bold text-slate-900 dark:text-white">{{ devices|length }}</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">设备</p>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 p-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
+                <svg class="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <div>
+                <p class="text-2xl font-heading font-bold text-slate-900 dark:text-white">{{ devices|selectattr('is_online')|list|length }}</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">在线</p>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 p-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center">
+                <svg class="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+            </div>
+            <div>
+                <p class="text-2xl font-heading font-bold text-slate-900 dark:text-white">{{ devices|rejectattr('is_online')|list|length }}</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">离线</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Homes -->
+{% if homes %}
+<div class="mb-8">
+    <h2 class="font-heading text-lg font-semibold text-slate-900 dark:text-white mb-3">家庭</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {% for home in homes %}
+        <div class="bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 p-4 hover:border-brand-300 dark:hover:border-brand-600 transition-colors">
+            <div class="flex items-center justify-between">
+                <h3 class="font-medium text-slate-900 dark:text-white">{{ home.name }}</h3>
+                <span class="text-xs text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">{{ home.room_list|length if home.room_list else 0 }} 房间</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Devices -->
+<div>
+    <div class="flex items-center justify-between mb-3">
+        <h2 class="font-heading text-lg font-semibold text-slate-900 dark:text-white">设备</h2>
+        <a href="{{ url_for('web.devices') }}" class="text-sm text-brand-600 dark:text-brand-400 hover:underline">查看全部</a>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+        {% for device in devices %}
+        <a href="{{ url_for('web.device_control', did=device.did) }}"
+           class="group bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 p-3 sm:p-4 hover:border-brand-300 dark:hover:border-brand-600 transition-all hover:shadow-sm"
+           data-device-card="{{ device.did }}">
+            <div class="flex items-start gap-2 mb-2">
+                <span class="mt-1.5 inline-block w-2 h-2 rounded-full shrink-0 {% if device.is_online %}bg-emerald-400{% else %}bg-slate-300 dark:bg-slate-600{% endif %}"
+                      data-online-dot="{{ device.did }}"></span>
+                <span class="font-medium text-sm text-slate-900 dark:text-white leading-snug line-clamp-2">{{ device.name }}</span>
+            </div>
+            <p class="text-xs text-slate-400 dark:text-slate-500 truncate">{{ device.model or '未知型号' }}</p>
+            {% if not device.is_online %}
+            <div class="mt-2 text-xs text-slate-400 dark:text-slate-500">离线</div>
+            {% endif %}
+        </a>
+        {% endfor %}
+        {% if not devices %}
+        <div class="col-span-full py-12 text-center">
+            <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            <p class="text-slate-400 dark:text-slate-500 text-sm">暂无设备数据</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('mijia-device-update', (event) => {
+    const update = event.detail;
+    if (update.type === 'device_online_change') {
+        const dot = document.querySelector(`[data-online-dot="${update.did}"]`);
+        const card = document.querySelector(`[data-device-card="${update.did}"]`);
+        if (dot) {
+            dot.classList.toggle('bg-emerald-400', update.data.is_online);
+            dot.classList.toggle('bg-slate-300', !update.data.is_online);
+            dot.classList.toggle('dark:bg-slate-600', !update.data.is_online);
+        }
+        if (card) {
+            card.classList.toggle('opacity-60', !update.data.is_online);
+        }
+    }
+    if (update.type === 'device_list_updated') {
+        showToast('设备列表已更新', 'info');
+    }
+});
+</script>
+{% endblock %}

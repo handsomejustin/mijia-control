@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}403 - 禁止访问{% endblock %}
+
+{% block content %}
+<div class="text-center py-20">
+    <h1 class="font-heading text-7xl font-bold text-slate-200 dark:text-slate-700 mb-4">403</h1>
+    <p class="text-slate-500 dark:text-slate-400 mb-6">禁止访问</p>
+    <a href="{{ url_for('web.dashboard') }}" class="text-brand-600 dark:text-brand-400 hover:underline text-sm">返回首页</a>
+</div>
+{% endblock %}

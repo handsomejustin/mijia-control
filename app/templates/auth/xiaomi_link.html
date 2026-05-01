@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}绑定小米账号 - 米家控制{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto">
+    <div class="mb-6 flex items-center justify-between">
+        <div>
+            <h1 class="font-heading text-2xl font-bold text-slate-900 dark:text-white">绑定小米账号</h1>
+        </div>
+    </div>
+
+    {% if xiaomi_status.linked %}
+    <div class="bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 p-5 sm:p-6">
+        <div class="flex items-center gap-3 mb-4">
+            <span class="inline-block w-3 h-3 rounded-full {% if xiaomi_status.is_valid %}bg-emerald-400{% else %}bg-red-400{% endif %}"></span>
+            <span class="font-medium text-slate-900 dark:text-white">{% if xiaomi_status.is_valid %}已绑定且有效{% else %}已绑定但需重新认证{% endif %}</span>
+        </div>
+        {% if xiaomi_status.xiaomi_user_id %}
+        <p class="text-slate-500 dark:text-slate-400 text-sm">小米用户 ID: <span class="font-mono">{{ xiaomi_status.xiaomi_user_id }}</span></p>
+        {% endif %}
+        {% if xiaomi_status.last_refreshed %}
+        <p class="text-slate-500 dark:text-slate-400 text-sm">上次刷新: {{ xiaomi_status.last_refreshed }}</p>
+        {% endif %}
+        <div class="mt-4 flex gap-2">
+            <button onclick="startQrLogin()" class="px-4 py-2 rounded-lg text-sm font-medium bg-brand-500 text-white hover:bg-brand-600 transition-colors">重新绑定</button>
+            <button onclick="unlinkXiaomi()" class="px-4 py-2 rounded-lg text-sm font-medium bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">解绑</button>
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 p-5 sm:p-6 text-center">
+        <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+        <p class="text-slate-500 dark:text-slate-400 mb-4">绑定小米账号后即可控制您的智能设备</p>
+        <button onclick="startQrLogin()" class="px-6 py-2.5 rounded-lg text-sm font-medium bg-brand-500 text-white hover:bg-brand-600 transition-colors">扫码绑定</button>
+    </div>
+    {% endif %}
+
+    <div id="qr-container" class="hidden mt-6 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 p-6 text-center">
+        <p class="text-slate-500 dark:text-slate-400 mb-4">请使用米家APP扫描下方二维码</p>
+        <img id="qr-image" class="mx-auto mb-4 rounded-lg" style="max-width:240px">
+        <div id="qr-status" class="text-slate-500 dark:text-slate-400">等待扫码...</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentPollId = null;
+let pollTimer = null;
+
+function startQrLogin() {
+    fetch('/api/xiaomi/qr-init', {method: 'POST', headers: {'Content-Type': 'application/json'}})
+        .then(r => r.json())
+        .then(data => {
+            if (data.success && data.data.qr_image) {
+                document.getElementById('qr-container').classList.remove('hidden');
+                document.getElementById('qr-image').src = data.data.qr_image;
+                currentPollId = data.data.poll_id;
+                if (window._mijiaSocket && data.data.ws_room) {
+                    window._mijiaSocket.emit('join_room', {room: data.data.ws_room});
+                }
+                pollQrStatus(currentPollId);
+            } else if (data.success && data.message) {
+                showToast(data.message, 'info');
+            }
+        });
+}
+
+document.addEventListener('mijia-qr-status', (event) => {
+    const data = event.detail;
+    const el = document.getElementById('qr-status');
+    if (data.status === 'success') {
+        el.textContent = '绑定成功！';
+        el.className = 'text-emerald-600 dark:text-emerald-400 font-medium';
+        clearTimeout(pollTimer);
+        setTimeout(() => location.reload(), 1500);
+    } else if (data.status === 'timeout') {
+        el.textContent = '二维码已过期，请重试';
+        el.className = 'text-red-600 dark:text-red-400';
+        clearTimeout(pollTimer);
+    } else if (data.status === 'error') {
+        el.textContent = '出现错误: ' + (data.detail || data.status);
+        el.className = 'text-red-600 dark:text-red-400';
+        clearTimeout(pollTimer);
+    }
+});
+
+function pollQrStatus(pollId) {
+    fetch(`/api/xiaomi/qr-poll/${pollId}`)
+        .then(r => r.json())
+        .then(data => {
+            const status = data.data.status;
+            const el = document.getElementById('qr-status');
+            if (status === 'success') {
+                el.textContent = '绑定成功！';
+                el.className = 'text-emerald-600 dark:text-emerald-400 font-medium';
+                setTimeout(() => location.reload(), 1500);
+            } else if (status === 'timeout') {
+                el.textContent = '二维码已过期，请重试';
+                el.className = 'text-red-600 dark:text-red-400';
+            } else if (status === 'pending') {
+                pollTimer = setTimeout(() => pollQrStatus(pollId), 2000);
+            } else {
+                el.textContent = '出现错误: ' + (data.data.detail || status);
+                el.className = 'text-red-600 dark:text-red-400';
+            }
+        });
+}
+
+function unlinkXiaomi() {
+    if (!confirm('确定要解绑小米账号吗？')) return;
+    fetch('/api/xiaomi/unlink', {method: 'DELETE'})
+        .then(r => r.json())
+        .then(() => location.reload());
+}
+</script>
+{% endblock %}

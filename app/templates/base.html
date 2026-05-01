@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}米家控制{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        darkMode: 'class',
+        theme: {
+            extend: {
+                fontFamily: {
+                    heading: ['Space Grotesk', 'system-ui', 'sans-serif'],
+                    body: ['DM Sans', 'system-ui', 'sans-serif'],
+                },
+                colors: {
+                    brand: {
+                        50: '#f0fdfa', 100: '#ccfbf1', 200: '#99f6e4',
+                        300: '#5eead4', 400: '#2dd4bf', 500: '#14b8a6',
+                        600: '#0d9488', 700: '#0f766e', 800: '#115e59', 900: '#134e4a',
+                    },
+                    surface: {
+                        light: '#FAFAF8',
+                        dark: '#0B1120',
+                    }
+                }
+            }
+        }
+    }
+    </script>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'DM Sans', system-ui, sans-serif; }
+        h1, h2, h3, h4, h5, h6, .font-heading { font-family: 'Space Grotesk', system-ui, sans-serif; }
+
+        /* Smooth dark mode transitions */
+        html.transitioning,
+        html.transitioning *,
+        html.transitioning *::before,
+        html.transitioning *::after {
+            transition: background-color 0.3s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        .dark ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+
+        /* Range input styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-surface-light dark:bg-surface-dark min-h-screen text-slate-800 dark:text-slate-200">
+
+    {% if current_user.is_authenticated %}
+    <!-- Desktop & Mobile Navigation -->
+    <nav class="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-700/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6">
+            <div class="flex items-center justify-between h-14">
+                <!-- Logo -->
+                <a href="{{ url_for('web.dashboard') }}" class="flex items-center gap-2 shrink-0">
+                    <div class="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+                        </svg>
+                    </div>
+                    <span class="font-heading font-bold text-lg text-slate-900 dark:text-white hidden sm:block">米家控制</span>
+                </a>
+
+                <!-- Desktop Nav Links -->
+                <div class="hidden md:flex items-center gap-1">
+                    <a href="{{ url_for('web.homes') }}" class="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">家庭</a>
+                    <a href="{{ url_for('web.devices') }}" class="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">设备</a>
+                    <a href="{{ url_for('web.device_groups') }}" class="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">分组</a>
+                    <a href="{{ url_for('web.scenes') }}" class="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">场景</a>
+                    <a href="{{ url_for('web.automations') }}" class="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">自动化</a>
+                    <a href="{{ url_for('web.energy_dashboard') }}" class="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">能耗</a>
+                    <a href="{{ url_for('web.link_xiaomi') }}" class="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">小米账号</a>
+                    {% if current_user.is_admin %}
+                    <a href="{{ url_for('admin.dashboard') }}" class="px-3 py-1.5 rounded-lg text-sm font-medium text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/20 transition-colors">管理</a>
+                    {% endif %}
+                </div>
+
+                <!-- Right Actions -->
+                <div class="flex items-center gap-2">
+                    <!-- Dark Mode Toggle -->
+                    <button onclick="toggleDarkMode()" class="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="切换深色模式">
+                        <svg class="w-5 h-5 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                        </svg>
+                        <svg class="w-5 h-5 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                        </svg>
+                    </button>
+
+                    <!-- User Menu -->
+                    <div class="relative" x-data="{ open: false }" @click.away="open = false">
+                        <button @click="open = !open" class="flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                            <div class="w-7 h-7 rounded-full bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center">
+                                <span class="text-brand-700 dark:text-brand-300 text-xs font-semibold">{{ current_user.username[0] | upper }}</span>
+                            </div>
+                            <span class="hidden sm:block text-slate-700 dark:text-slate-300 font-medium">{{ current_user.username }}</span>
+                            <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div x-show="open" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100" x-transition:leave="transition ease-in duration-75" x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+                             class="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 py-1 z-50">
+                            <a href="{{ url_for('web.change_password') }}" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">修改密码</a>
+                            <hr class="my-1 border-slate-200 dark:border-slate-700">
+                            <a href="{{ url_for('web.logout') }}" class="block px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">退出登录</a>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Menu Toggle -->
+                    <button @click="mobileMenu = !mobileMenu" class="md:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mobile Menu -->
+            <div x-show="mobileMenu" x-transition class="md:hidden pb-3 border-t border-slate-200 dark:border-slate-700/50 pt-2 space-y-1" x-data="{ mobileMenu: false }">
+                <a href="{{ url_for('web.homes') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">家庭</a>
+                <a href="{{ url_for('web.devices') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">设备</a>
+                <a href="{{ url_for('web.device_groups') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">分组</a>
+                <a href="{{ url_for('web.scenes') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">场景</a>
+                <a href="{{ url_for('web.automations') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">自动化</a>
+                <a href="{{ url_for('web.energy_dashboard') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">能耗</a>
+                <a href="{{ url_for('web.link_xiaomi') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">小米账号</a>
+                {% if current_user.is_admin %}
+                <a href="{{ url_for('admin.dashboard') }}" class="block px-3 py-2 rounded-lg text-sm font-medium text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/20">管理后台</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="mb-4 px-4 py-3 rounded-xl text-sm font-medium flex items-center gap-2
+            {% if category == 'error' %}
+            bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800
+            {% else %}
+            bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800
+            {% endif %}">
+            {% if category == 'error' %}
+            <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            {% else %}
+            <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            {% endif %}
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Toast -->
+    <div id="toast-container" class="fixed top-16 right-4 z-50 space-y-2"></div>
+
+    {% block scripts %}{% endblock %}
+
+    {% if current_user.is_authenticated %}
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <script>
+    (function() {
+        const socket = io({transports: ['websocket', 'polling']});
+        socket.on('connect', () => console.log('WebSocket connected'));
+        socket.on('disconnect', () => console.log('WebSocket disconnected'));
+        socket.on('device_update', (data) => {
+            document.dispatchEvent(new CustomEvent('mijia-device-update', {detail: data}));
+        });
+        socket.on('qr_status', (data) => {
+            document.dispatchEvent(new CustomEvent('mijia-qr-status', {detail: data}));
+        });
+        window._mijiaSocket = socket;
+    })();
+
+    function showToast(message, type = 'info') {
+        const container = document.getElementById('toast-container');
+        const styles = {
+            info: 'bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900',
+            success: 'bg-emerald-600 dark:bg-emerald-500 text-white',
+            warning: 'bg-amber-500 dark:bg-amber-400 text-white',
+            error: 'bg-red-600 dark:bg-red-500 text-white',
+        };
+        const el = document.createElement('div');
+        el.className = `${styles[type] || styles.info} px-4 py-2.5 rounded-xl shadow-lg text-sm font-medium transition-all duration-300 transform translate-x-0`;
+        el.textContent = message;
+        container.appendChild(el);
+        setTimeout(() => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateX(100%)';
+            setTimeout(() => el.remove(), 300);
+        }, 3000);
+    }
+
+    // Dark mode
+    function toggleDarkMode() {
+        document.documentElement.classList.add('transitioning');
+        document.documentElement.classList.toggle('dark');
+        const isDark = document.documentElement.classList.contains('dark');
+        localStorage.setItem('darkMode', isDark ? '1' : '0');
+        setTimeout(() => document.documentElement.classList.remove('transitioning'), 300);
+    }
+
+    (function initDarkMode() {
+        const saved = localStorage.getItem('darkMode');
+        if (saved === '1' || (saved === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+    })();
+    </script>
+    {% endif %}
+</body>
+</html>

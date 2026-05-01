@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}自动化规则 - 米家控制{% endblock %}
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+    <h1 class="font-heading text-2xl font-bold text-slate-900 dark:text-white">自动化规则</h1>
+    <button onclick="document.getElementById('create-form').classList.toggle('hidden')"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-brand-500 text-white hover:bg-brand-600 transition-colors">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        新建规则
+    </button>
+</div>
+
+<!-- Create Rule Form -->
+<div id="create-form" class="hidden mb-6 bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 p-5 sm:p-6">
+    <h3 class="font-heading font-semibold text-slate-900 dark:text-white mb-4">创建自动化规则</h3>
+    <form method="post" action="{{ url_for('web.create_automation') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">规则名称</label>
+                <input type="text" name="name" required maxlength="128"
+                       class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">触发类型</label>
+                    <select name="trigger_type" id="trigger-type" onchange="updateTriggerForm()"
+                            class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm">
+                        <option value="cron">定时 (Cron)</option>
+                        <option value="interval">间隔</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">执行动作</label>
+                    <select name="action_type" id="action-type" onchange="updateActionForm()"
+                            class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm">
+                        <option value="set_property">设置设备属性</option>
+                        <option value="run_scene">执行场景</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Trigger Config -->
+            <div id="trigger-cron">
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Cron 表达式</label>
+                <input type="text" name="cron_expr" placeholder="0 8 * * * (每天8点)" id="cron-input"
+                       class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm font-mono focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
+                <p class="text-xs text-slate-400 mt-1">格式: 分 时 日 月 星期 (例: 0 8 * * * 每天8:00)</p>
+            </div>
+            <div id="trigger-interval" class="hidden">
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">间隔 (秒)</label>
+                <input type="number" name="interval_seconds" placeholder="3600" min="60"
+                       class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
+            </div>
+
+            <!-- Action Config -->
+            <div id="action-device">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">设备</label>
+                        <select id="action-did" name="did"
+                                class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm">
+                            {% for d in devices %}
+                            <option value="{{ d.did }}">{{ d.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">属性</label>
+                        <input type="text" id="action-prop" name="prop_name" placeholder="如 power, brightness"
+                               class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">值</label>
+                        <input type="text" id="action-value" name="value" placeholder="如 true, 50"
+                               class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm">
+                    </div>
+                </div>
+            </div>
+            <div id="action-scene" class="hidden">
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">场景</label>
+                <select id="action-scene-id" name="scene_id"
+                        class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm">
+                    {% for s in scenes %}
+                    <option value="{{ s.scene_id }}">{{ s.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <input type="hidden" name="trigger_config" id="trigger-config-input">
+            <input type="hidden" name="action_config" id="action-config-input">
+
+            <div class="flex gap-2">
+                <button type="submit" onclick="fillHiddenFields()"
+                        class="px-4 py-2 rounded-lg bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors">创建规则</button>
+                <button type="button" onclick="document.getElementById('create-form').classList.add('hidden')"
+                        class="px-4 py-2 rounded-lg text-sm font-medium text-slate-500 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">取消</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Rules List -->
+<div class="space-y-3">
+    {% for rule in rules %}
+    <div class="bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 p-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg {% if rule.is_enabled %}bg-brand-50 dark:bg-brand-900/20{% else %}bg-slate-100 dark:bg-slate-700{% endif %} flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5 {% if rule.is_enabled %}text-brand-500{% else %}text-slate-400 dark:text-slate-500{% endif %}" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-medium text-slate-900 dark:text-white text-sm">{{ rule.name }}</span>
+                        <span class="text-xs px-1.5 py-0.5 rounded {% if rule.is_enabled %}bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400{% else %}bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500{% endif %}">{{ '启用' if rule.is_enabled else '停用' }}</span>
+                    </div>
+                    <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                        {{ rule.trigger_type }} → {{ rule.action_type }}
+                        {% if rule.last_triggered_at %} · 上次触发: {{ rule.last_triggered_at[:16] }}{% endif %}
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <form method="post" action="{{ url_for('web.toggle_automation', rule_id=rule.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-medium {% if rule.is_enabled %}text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30{% else %}text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/30{% endif %} transition-colors">
+                        {{ '停用' if rule.is_enabled else '启用' }}
+                    </button>
+                </form>
+                <form method="post" action="{{ url_for('web.delete_automation', rule_id=rule.id) }}" onsubmit="return confirm('确定删除此规则？')">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">删除</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    {% if not rules %}
+    <div class="py-12 text-center">
+        <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <p class="text-slate-400 dark:text-slate-500 text-sm">暂无自动化规则</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateTriggerForm() {
+    const type = document.getElementById('trigger-type').value;
+    document.getElementById('trigger-cron').classList.toggle('hidden', type !== 'cron');
+    document.getElementById('trigger-interval').classList.toggle('hidden', type !== 'interval');
+}
+
+function updateActionForm() {
+    const type = document.getElementById('action-type').value;
+    document.getElementById('action-device').classList.toggle('hidden', type !== 'set_property');
+    document.getElementById('action-scene').classList.toggle('hidden', type !== 'run_scene');
+}
+
+function fillHiddenFields() {
+    const triggerType = document.getElementById('trigger-type').value;
+    if (triggerType === 'cron') {
+        const expr = document.getElementById('cron-input').value;
+        document.getElementById('trigger-config-input').value = JSON.stringify({cron_expr: expr});
+    } else {
+        const secs = document.querySelector('#trigger-interval input').value;
+        document.getElementById('trigger-config-input').value = JSON.stringify({interval_seconds: parseInt(secs) || 3600});
+    }
+
+    const actionType = document.getElementById('action-type').value;
+    if (actionType === 'set_property') {
+        document.getElementById('action-config-input').value = JSON.stringify({
+            did: document.getElementById('action-did').value,
+            prop_name: document.getElementById('action-prop').value,
+            value: document.getElementById('action-value').value,
+        });
+    } else {
+        document.getElementById('action-config-input').value = JSON.stringify({
+            scene_id: document.getElementById('action-scene-id').value,
+        });
+    }
+}
+</script>
+{% endblock %}
