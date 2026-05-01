@@ -5,9 +5,6 @@
 > **致谢**：本项目底层使用了 [Do1e/mijia-api](https://github.com/Do1e/mijia-api)（mijiaAPI v3.0+）提供的 Python SDK，
 > 用于与小米云端进行设备通信、属性读写和场景执行。感谢原作者的开源贡献。
 
-> **致谢**：本项目底层使用了 [Do1e/mijia-api](https://github.com/Do1e/mijia-api)（mijiaAPI v3.0+）提供的 Python SDK，
-> 用于与小米云端进行设备通信、属性读写和场景执行。感谢原作者的开源贡献。
-
 ## 功能特性
 
 - **Web 管理界面** — 设备控制、家庭/场景管理、能耗统计、自动化规则、深色模式、移动端适配
@@ -134,13 +131,30 @@ python run.py
 
 ## CLI 使用
 
-安装后可直接使用 `mijia-control` 命令（无需 Flask 上下文）：
+安装并激活虚拟环境后，可直接使用 `mijia-control` 命令（无需 Flask 上下文）：
 
 ```bash
 mijia-control --help                           # 查看帮助
 ```
 
 > 也可通过 Flask CLI 调用：`flask mijia <command>`
+
+**跨平台说明：** `pip install -e ".[dev]"` 会自动创建平台对应的可执行入口：
+
+| 平台 | 入口路径 | 说明 |
+|------|----------|------|
+| Windows | `venv\Scripts\mijia-control.exe` | 激活 venv 后直接可用 |
+| Linux / macOS | `venv/bin/mijia-control` | 激活 venv 后直接可用 |
+
+**可选：全局使用（不激活 venv）**
+
+```bash
+# Linux / macOS — 创建软链接
+sudo ln -s /path/to/mijia-control/venv/bin/mijia-control /usr/local/bin/mijia-control
+
+# Windows — 将以下路径添加到系统 PATH 环境变量
+# D:\path\to\mijia-control\venv\Scripts
+```
 
 ### 用户管理
 
