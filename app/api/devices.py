@@ -291,3 +291,54 @@ def run_action(did, action_name):
         return _mijia_error_response(e)
     except Exception as e:
         return error(str(e), 500)
+
+
+@devices_ns.route("/<did>/rated_power", methods=["PUT"])
+@auth_required
+@limiter.limit("30 per minute")
+def set_rated_power(did):
+    """设置设备额定功率(W)，用于估算能耗
+    ---
+    tags:
+      - 设备
+    security:
+      - cookieAuth: []
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: did
+        type: string
+        required: true
+        description: 设备 ID
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required: [rated_power]
+          properties:
+            rated_power:
+              type: number
+              description: 额定功率(W)，传 null 清除
+    responses:
+      200:
+        description: 设置成功
+      404:
+        description: 设备未找到
+    """
+    data = request.get_json(silent=True) or {}
+    rated_power = data.get("rated_power")
+    if rated_power is not None:
+        try:
+            rated_power = float(rated_power)
+            if rated_power <= 0:
+                return error("rated_power 必须大于 0", 400)
+        except (TypeError, ValueError):
+            return error("rated_power 必须为数字", 400)
+    try:
+        result = DeviceService.update_rated_power(get_current_user_id(), did, rated_power)
+        return success(result)
+    except ValueError as e:
+        return error(str(e), 404)
+    except Exception as e:
+        return error(str(e), 500)

@@ -15,6 +15,7 @@ class DeviceCache(db.Model):
     is_online = db.Column(db.Boolean, default=True)
     spec_data = db.Column(db.JSON, nullable=True)
     raw_data = db.Column(db.JSON, nullable=True)
+    rated_power = db.Column(db.Float, nullable=True, comment="额定功率(W)，用于估算能耗")
     cached_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (db.UniqueConstraint("user_id", "did", name="uk_device_caches_user_did"),)

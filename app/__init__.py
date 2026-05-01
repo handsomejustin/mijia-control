@@ -22,6 +22,11 @@ def create_app(config_name=None):
     _register_error_handlers(app)
     _add_security_headers(app)
 
+    if config_name != "testing":
+        from app.services.energy_poller import start_energy_poller
+
+        start_energy_poller(app)
+
     return app
 
 

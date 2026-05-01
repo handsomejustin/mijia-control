@@ -32,6 +32,7 @@ class DeviceService:
                 "home_id": d.home_id,
                 "is_online": d.is_online,
                 "spec_data": d.spec_data,
+                "rated_power": d.rated_power,
             }
             for d in cached
         ]
@@ -61,6 +62,7 @@ class DeviceService:
             "is_camera": is_camera,
             "camera_ip": raw.get("localip") if is_camera else None,
             "spec_data": spec_data,
+            "rated_power": cached.rated_power,
         }
 
     @staticmethod
@@ -141,6 +143,15 @@ class DeviceService:
         device.run_action(action_name, **kwargs)
         _emit_device_update(user_id, did, "action_executed", {"action_name": action_name, "status": "executed"})
         return {"did": did, "action_name": action_name, "status": "executed"}
+
+    @staticmethod
+    def update_rated_power(user_id: int, did: str, rated_power: float | None) -> dict:
+        cached = DeviceCache.query.filter_by(user_id=user_id, did=did).first()
+        if not cached:
+            raise ValueError(f"设备 {did} 未找到")
+        cached.rated_power = rated_power
+        db.session.commit()
+        return {"did": did, "rated_power": rated_power}
 
     @staticmethod
     def _refresh_devices(user_id: int, home_id: str = None) -> list[dict]:
