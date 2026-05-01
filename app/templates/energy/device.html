@@ -23,6 +23,33 @@
     </div>
 </div>
 
+<!-- 额定功率设置（始终显示） -->
+<div class="bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 p-4 sm:p-5 mb-6"
+     x-data="{ power: {{ device.rated_power if device.rated_power else 'null' }}, saving: false, msg: '' }">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">额定功率</span>
+            <span x-show="power !== null" class="text-xs text-brand-500 font-mono">(<span x-text="power"></span>W)</span>
+            <span x-show="power === null" class="text-xs text-amber-500">未设置</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <input type="number" x-model.number="power" min="0.1" step="0.1" placeholder="W"
+                   class="w-20 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-2 py-1 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none text-center">
+            <button @click="savePower()" :disabled="saving || power === null || power <= 0"
+                    class="px-3 py-1 rounded-lg text-xs font-medium bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50 transition-colors">
+                <span x-text="saving ? '...' : '保存'"></span>
+            </button>
+            <button x-show="power !== null" @click="clearPower()" :disabled="saving"
+                    class="px-3 py-1 rounded-lg text-xs font-medium text-slate-500 bg-slate-100 dark:bg-slate-700 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+                清除
+            </button>
+        </div>
+    </div>
+    <p x-show="msg" x-text="msg" class="text-xs mt-2" :class="msg.includes('成功') ? 'text-emerald-500' : 'text-red-500'"></p>
+    <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">设置后系统每 5 分钟自动根据开关/亮度估算能耗</p>
+</div>
+
 {% if energy_props %}
 <!-- Property Selector -->
 <div class="mb-6 flex flex-wrap gap-2">
@@ -54,10 +81,10 @@
     </div>
 </div>
 {% else %}
-<div class="py-12 text-center">
-    <svg class="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-    <p class="text-slate-400 dark:text-slate-500 text-sm">该设备暂无能耗数据</p>
-    <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">通过 API 记录能耗数据后，这里将显示统计图表</p>
+<div class="py-8 text-center">
+    <svg class="w-12 h-12 mx-auto text-slate-300 dark:bg-slate-600 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4"/></svg>
+    <p class="text-slate-400 dark:text-slate-500 text-sm">暂无能耗数据</p>
+    <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">设置额定功率后，约 5 分钟内数据将自动出现在此页面</p>
 </div>
 {% endif %}
 {% endblock %}
@@ -70,6 +97,41 @@ let currentRange = 'daily';
 let currentDays = 7;
 let chart = null;
 
+function savePower() {
+    this.saving = true;
+    this.msg = '';
+    fetch(`/api/devices/${DID}/rated_power`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rated_power: this.power })
+    })
+    .then(r => r.json())
+    .then(data => {
+        this.saving = false;
+        this.msg = data.success ? '保存成功' : (data.message || '保存失败');
+        if (data.success) setTimeout(() => { this.msg = ''; }, 3000);
+    })
+    .catch(() => { this.saving = false; this.msg = '网络错误'; });
+}
+
+function clearPower() {
+    this.saving = true;
+    this.msg = '';
+    fetch(`/api/devices/${DID}/rated_power`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rated_power: null })
+    })
+    .then(r => r.json())
+    .then(data => {
+        this.saving = false;
+        if (data.success) { this.power = null; this.msg = '已清除'; setTimeout(() => { this.msg = ''; }, 3000); }
+        else { this.msg = data.message || '操作失败'; }
+    })
+    .catch(() => { this.saving = false; this.msg = '网络错误'; });
+}
+
+{% if energy_props %}
 function loadChart(prop) {
     currentProp = prop;
     document.querySelectorAll('.prop-btn').forEach(b => {
@@ -148,7 +210,6 @@ function renderChart(rows) {
     });
 }
 
-{% if energy_props %}
 loadChart(currentProp);
 {% endif %}
 </script>
