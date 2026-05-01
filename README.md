@@ -21,6 +21,7 @@
 - **定时自动化规则** — 支持 cron、interval、日出/日落等触发方式
 - **能耗统计仪表板** — 按设备记录和展示能耗数据（日/小时粒度）
 - **API Token 管理** — 为第三方应用创建和管理访问令牌
+- **MCP Server** — 内置 MCP 协议支持，Claude Code / Hermes Agent 等 AI Agent 可直接调用
 - **多用户 & 权限** — 用户注册登录、管理员后台、限流保护
 
 ## 技术栈
@@ -37,6 +38,7 @@
 | API 文档 | Flasgger (Swagger UI) |
 | 序列化/校验 | Marshmallow |
 | 米家 SDK | [mijiaAPI](https://github.com/Do1e/mijia-api) >= 3.0 |
+| MCP 协议 | [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) >= 1.6 |
 | 代码质量 | Ruff (lint + format) |
 | 测试 | pytest |
 
@@ -53,6 +55,7 @@
 │   ├── schemas/             # Marshmallow 序列化/校验
 │   ├── utils/               # MijiaAPI 适配器、统一响应、装饰器
 │   └── cli/                 # Click CLI 命令
+├── mcp_server/              # MCP Server（AI Agent 工具）
 ├── config/                  # Flask 配置（development/testing/production）
 ├── migrations/              # Alembic 数据库迁移脚本
 ├── tests/                   # pytest 测试
@@ -134,6 +137,50 @@ python run.py
 | API Token | `/api/tokens/` | 令牌管理（第三方集成） |
 
 完整 API 文档：启动后访问 `/api/docs/`。
+
+## MCP Server（AI Agent 集成）
+
+内置 MCP Server，支持 Claude Code、Hermes Agent、OpenClaw 等任何兼容 MCP 协议的 AI Agent 直接控制米家设备。
+
+### 安装
+
+```bash
+pip install -e ".[mcp]"
+```
+
+### 配置
+
+```bash
+# 环境变量（也可在 MCP 客户端中配置）
+export MIJIA_API_URL=http://127.0.0.1:5000/api
+export MIJIA_TOKEN=eyJhbGci...   # JWT Token 或 API Token
+```
+
+### Claude Code 中使用
+
+```bash
+# 注册 MCP 服务器
+claude mcp add mijia -- python -m mcp_server
+
+# 之后在对话中直接使用
+# "帮我把客厅的灯关掉"
+# "查看所有设备的在线状态"
+# "执行回家场景"
+```
+
+### 可用工具
+
+| 工具 | 功能 |
+|------|------|
+| `list_devices` | 列出所有设备 |
+| `get_device` | 查看设备详情与规格 |
+| `get_property` | 读取设备属性 |
+| `set_property` | 设置设备属性（控制设备） |
+| `run_action` | 执行设备动作 |
+| `list_scenes` | 列出场景 |
+| `run_scene` | 执行场景 |
+| `list_homes` | 列出家庭 |
+| `get_home` | 查看家庭详情 |
 
 ## CLI 使用
 

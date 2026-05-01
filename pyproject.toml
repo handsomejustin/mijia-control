@@ -30,6 +30,10 @@ dev = [
     "pytest-cov>=5.0",
     "ruff>=0.14",
 ]
+mcp = [
+    "mcp[cli]>=1.6",
+    "httpx>=0.27",
+]
 
 [project.scripts]
 mijia-control = "mijia_cli:cli"
@@ -42,7 +46,7 @@ build-backend = "setuptools.build_meta"
 py-modules = ["mijia_cli"]
 
 [tool.setuptools.packages.find]
-include = ["app*"]
+include = ["app*", "mcp_server*"]
 
 [tool.ruff]
 line-length = 120
