@@ -9,7 +9,7 @@
 
 ![Agent 演示界面](screenshot/1.png)
 
-[▶ 观看演示视频](screenshot/2.mp4)
+![Agent 演示视频](screenshot/demo.gif)
 
 ## 功能特性
 
