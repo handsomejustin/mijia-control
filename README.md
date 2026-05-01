@@ -150,10 +150,33 @@ pip install -e ".[mcp]"
 
 ### 配置
 
+首先确保 Web 服务已启动（`python run.py`），然后获取 Token：
+
 ```bash
-# 环境变量（也可在 MCP 客户端中配置）
+# 方式一：CLI 登录（推荐，自动保存 Token）
+mijia-control login
+
+# 方式二：API 登录获取
+curl -X POST http://127.0.0.1:5000/api/auth/jwt/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "你的用户名", "password": "你的密码"}'
+# 返回的 access_token 即为 MIJIA_TOKEN
+```
+
+设置环境变量：
+
+```bash
+# Linux / macOS
 export MIJIA_API_URL=http://127.0.0.1:5000/api
-export MIJIA_TOKEN=eyJhbGci...   # JWT Token 或 API Token
+export MIJIA_TOKEN=eyJhbGci...   # 上一步获取的 access_token
+
+# Windows (PowerShell)
+$env:MIJIA_API_URL = "http://127.0.0.1:5000/api"
+$env:MIJIA_TOKEN = "eyJhbGci..."
+
+# Windows (CMD)
+set MIJIA_API_URL=http://127.0.0.1:5000/api
+set MIJIA_TOKEN=eyJhbGci...
 ```
 
 ### Claude Code 中使用
