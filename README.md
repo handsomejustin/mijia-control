@@ -5,6 +5,12 @@
 > **致谢**：本项目底层使用了 [Do1e/mijia-api](https://github.com/Do1e/mijia-api)（mijiaAPI v3.0+）提供的 Python SDK，
 > 用于与小米云端进行设备通信、属性读写和场景执行。感谢原作者的开源贡献。
 
+## 演示
+
+![Agent 演示界面](screenshot/1.png)
+
+<video src="screenshot/2.mp4" controls="controls" width="100%"></video>
+
 ## 功能特性
 
 - **Web 管理界面** — 设备控制、家庭/场景管理、能耗统计、自动化规则、深色模式、移动端适配
