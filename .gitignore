@@ -14,3 +14,4 @@ venv/
 .omc/
 go2rtc.exe
 go2rtc.zip
+go2rtc.yaml
