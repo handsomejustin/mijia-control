@@ -10,7 +10,7 @@ class Config:
         "pool_pre_ping": True,
     }
     JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "dev-jwt-secret")
-    JWT_ACCESS_TOKEN_EXPIRES = 900  # 15 minutes
+    JWT_ACCESS_TOKEN_EXPIRES = 86400  # 24 hours
     JWT_REFRESH_TOKEN_EXPIRES = 604800  # 7 days
     WTF_CSRF_ENABLED = True
     WTF_CSRF_CHECK_DEFAULT = False
