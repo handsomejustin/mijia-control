@@ -9,7 +9,7 @@
 
 ![Agent 演示界面](screenshot/1.png)
 
-<video src="screenshot/2.mp4" controls="controls" width="100%"></video>
+[▶ 观看演示视频](screenshot/2.mp4)
 
 ## 功能特性
 
