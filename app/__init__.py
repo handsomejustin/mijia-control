@@ -2,9 +2,9 @@ import os
 
 from dotenv import load_dotenv
 
-from config import config_map
-
 load_dotenv()
+
+from config import config_map
 
 
 def create_app(config_name=None):
