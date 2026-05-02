@@ -3,6 +3,13 @@
 [中文](README.md) | [English](README_EN.md) | [日本語](README_JA.md) | [한국어](README_KO.md) | [Español](README_ES.md)
 
 [![MCP Server](https://glama.ai/mcp/servers/handsomejustin/mijia-control/badges/score.svg)](https://glama.ai/mcp/servers/handsomejustin/mijia-control)
+[![GitHub license](https://img.shields.io/github/license/handsomejustin/mijia-control)](https://github.com/handsomejustin/mijia-control/blob/main/LICENSE)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)
+[![Version](https://img.shields.io/badge/version-1.0.2-green)](https://github.com/handsomejustin/mijia-control)
+[![Flask](https://img.shields.io/badge/Flask-3.0%2B-black)](https://flask.palletsprojects.com/)
+[![GitHub stars](https://img.shields.io/github/stars/handsomejustin/mijia-control?style=social)](https://github.com/handsomejustin/mijia-control)
+[![GitHub issues](https://img.shields.io/github/issues/handsomejustin/mijia-control)](https://github.com/handsomejustin/mijia-control/issues)
+[![GitHub last commit](https://img.shields.io/github/last-commit/handsomejustin/mijia-control)](https://github.com/handsomejustin/mijia-control)
 
 米家 × MCP × AI Agent × HomeKit 全桥接智能家居平台。
 
