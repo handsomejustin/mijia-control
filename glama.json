@@ -1,55 +1,6 @@
 {
-  "meta": {
-    "name": "mijia-control",
-    "description": "MijiaPilot - 米家智能家居 MCP Server，通过 AI Agent 控制灯光、空调、扫地机等米家智能设备，支持 HomeKit 桥接",
-    "author": "handsomejustin",
-    "license": "MIT",
-    "repository": "https://github.com/handsomejustin/mijia-control",
-    "homepage": "https://github.com/handsomejustin/mijia-control"
-  },
-  "server": {
-    "type": "python",
-    "entry": "mcp_server/server.py",
-    "runtime": "python",
-    "install": "pip install -e '.[mcp]'",
-    "run": "python -m mcp_server"
-  },
-  "tools": [
-    {
-      "name": "list_devices",
-      "description": "列出用户的所有米家智能设备"
-    },
-    {
-      "name": "get_device",
-      "description": "获取单个设备的详细信息"
-    },
-    {
-      "name": "get_property",
-      "description": "读取设备属性值（如亮度、温度、开关状态等）"
-    },
-    {
-      "name": "set_property",
-      "description": "设置设备属性值（如调节亮度、开关等）"
-    },
-    {
-      "name": "run_action",
-      "description": "执行设备动作（如播放音乐、启动清扫等）"
-    },
-    {
-      "name": "list_scenes",
-      "description": "列出所有米家智能场景"
-    },
-    {
-      "name": "run_scene",
-      "description": "执行指定的智能场景"
-    },
-    {
-      "name": "list_homes",
-      "description": "列出用户的所有米家家庭"
-    },
-    {
-      "name": "get_home",
-      "description": "获取指定家庭的详细信息"
-    }
+  "$schema": "https://glama.ai/mcp/schemas/server.json",
+  "maintainers": [
+    "handsomejustin"
   ]
 }
