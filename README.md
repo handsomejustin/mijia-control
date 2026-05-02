@@ -1,5 +1,7 @@
 # MijiaPilot
 
+[中文](README.md) | [English](README_EN.md) | [日本語](README_JA.md) | [한국어](README_KO.md) | [Español](README_ES.md)
+
 [![MCP Server](https://glama.ai/mcp/servers/handsomejustin/mijia-control/badges/score.svg)](https://glama.ai/mcp/servers/handsomejustin/mijia-control)
 
 米家 × MCP × AI Agent × HomeKit 全桥接智能家居平台。
