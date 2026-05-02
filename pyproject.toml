@@ -2,7 +2,7 @@
 name = "mijia-control"
 version = "1.0.2"
 description = "MijiaPilot - 米家 x MCP x AI Agent x HomeKit 全桥接智能家居平台"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "flask>=3.0",
     "flask-sqlalchemy>=3.1",
