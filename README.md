@@ -1,8 +1,8 @@
-# mijia-control
+# MijiaPilot
 
 [![MCP Server](https://glama.ai/mcp/servers/handsomejustin/mijia-control/badges/score.svg)](https://glama.ai/mcp/servers/handsomejustin/mijia-control)
 
-AI 驱动的米家智能家居控制平台 — Web / API / CLI / MCP / HomeKit 全接口覆盖。
+米家 × MCP × AI Agent × HomeKit 全桥接智能家居平台。
 
 > **致谢**：本项目底层使用了 [Do1e/mijia-api](https://github.com/Do1e/mijia-api)（mijiaAPI v3.0+）提供的 Python SDK，
 > 用于与小米云端进行设备通信、属性读写和场景执行。感谢原作者的开源贡献。
