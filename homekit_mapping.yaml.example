@@ -1,0 +1,22 @@
+# HomeKit 设备映射自定义配置
+# 复制此文件为 homekit_mapping.yaml 后按需修改：
+#   cp homekit_mapping.yaml.example homekit_mapping.yaml
+#
+# 优先级：用户自定义规则 > 内置 model 规则 > spec_data 自动推断 > 兜底策略
+
+# 设备自定义映射（精确 model 匹配，覆盖内置规则）
+devices:
+  # 示例：把空气净化器映射为开关（内置规则已包含，此处仅作演示）
+  # zhimi.airpurifier.mb4a: switch
+
+  # 示例：忽略不需要桥接到 HomeKit 的设备
+  # lumi.sensor_magnet.aq2: ignored
+
+  # 可用类别：light, outlet, switch, temperature_sensor, humidity_sensor,
+  #           thermostat, heater, camera, ignored
+
+# 兜底策略：当 model 未匹配任何规则时的处理方式
+#   auto   - 从设备的 spec_data 自动推断类型（推荐）
+#   switch - 所有未知设备映射为通用开关
+#   ignore - 忽略所有未知设备
+fallback: auto

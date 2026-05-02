@@ -24,6 +24,9 @@ class Config:
         "specs_route": "/api/docs/",
     }
     GO2RTC_URL = os.environ.get("GO2RTC_URL", "http://127.0.0.1:1984")
+    HOMEKIT_ENABLED = os.environ.get("HOMEKIT_ENABLED", "false").lower() == "true"
+    HOMEKIT_PORT = int(os.environ.get("HOMEKIT_PORT", "51826"))
+    HOMEKIT_PIN = os.environ.get("HOMEKIT_PIN", "123-45-678")
 
 
 class DevelopmentConfig(Config):

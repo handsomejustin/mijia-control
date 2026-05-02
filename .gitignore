@@ -16,3 +16,5 @@ go2rtc.exe
 go2rtc.zip
 go2rtc.yaml
 .claude/
+homekit.state
+homekit_mapping.yaml

@@ -24,6 +24,7 @@
 - **能耗统计仪表板** — 按设备记录和展示能耗数据（日/小时粒度）
 - **API Token 管理** — 为第三方应用创建和管理访问令牌
 - **MCP Server** — 内置 MCP 协议支持，Claude Code / Hermes Agent 等 AI Agent 可直接调用
+- **HomeKit 桥接** — 通过 Apple 家庭 App 和 Siri 控制米家设备，支持灯光、插座、传感器、温控器等
 - **多用户 & 权限** — 用户注册登录、管理员后台、限流保护
 
 ## 技术栈
@@ -41,6 +42,7 @@
 | 序列化/校验 | Marshmallow |
 | 米家 SDK | [mijiaAPI](https://github.com/Do1e/mijia-api) >= 3.0 |
 | MCP 协议 | [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) >= 1.6 |
+| HomeKit | [HAP-Python](https://github.com/ikalchev/HAP-python) >= 5.0 |
 | 代码质量 | Ruff (lint + format) |
 | 测试 | pytest |
 
@@ -56,12 +58,14 @@
 │   ├── models/              # SQLAlchemy 数据模型
 │   ├── schemas/             # Marshmallow 序列化/校验
 │   ├── utils/               # MijiaAPI 适配器、统一响应、装饰器
-│   └── cli/                 # Click CLI 命令
+│   ├── cli/                 # Click CLI 命令
+│   └── homekit/             # HomeKit Bridge（Apple 家庭桥接）
 ├── mcp_server/              # MCP Server（AI Agent 工具）
 ├── config/                  # Flask 配置（development/testing/production）
 ├── migrations/              # Alembic 数据库迁移脚本
 ├── tests/                   # pytest 测试
 ├── run.py                   # 开发服务器入口
+├── docs/                    # 详细文档（HomeKit、API 等）
 └── pyproject.toml           # 项目配置 & 依赖
 ```
 
@@ -206,6 +210,83 @@ claude mcp add mijia -- python -m mcp_server
 | `run_scene` | 执行场景 |
 | `list_homes` | 列出家庭 |
 | `get_home` | 查看家庭详情 |
+
+## HomeKit Bridge（Apple 家庭 & Siri 控制）
+
+通过 HAP-Python 实现 HomeKit 桥接，让 iPhone、Mac 用户在 Apple 家庭 App 和 Siri 中直接控制米家设备。
+
+### 架构
+
+```
+Apple 家庭 / Siri  →  HomeKit Bridge (HAP-Python)  →  Flask REST API  →  米家设备
+                    独立进程，端口 51826                  python run.py
+```
+
+### 安装
+
+```bash
+pip install -e ".[homekit]"
+```
+
+> **Windows 用户**：需要安装 [Bonjour Print Services](https://developer.apple.com/bonjour/) 或使用 Docker 运行 Bridge。
+
+### 配置
+
+在 `.env` 中添加（或直接设置环境变量）：
+
+```env
+HOMEKIT_ENABLED=true
+HOMEKIT_PORT=51826
+HOMEKIT_PIN=123-45-678
+```
+
+确保 Web 服务已启动并获取 JWT Token（与 MCP Server 相同的 `MIJIA_TOKEN`）。
+
+### 启动
+
+```bash
+# 先启动 Web 服务
+python run.py
+
+# 再启动 HomeKit Bridge（另一个终端）
+python -m app.homekit
+```
+
+### 配对
+
+1. 确保手机和电脑在同一局域网
+2. iPhone → 家庭 App → 添加设备 → 扫描终端显示的 QR 码，或手动输入 PIN
+3. 配对成功后，设备会以「米家智能家居」桥接器的形式出现
+
+### 支持的设备类型
+
+| HomeKit 类型 | 米家设备 | 控制能力 |
+|---|---|---|
+| Lightbulb | 灯泡、灯带 | 开关、亮度、色温 |
+| Outlet | 插座、智能开关 | 开关 |
+| Switch | 扫地机、净化器等 | 开关 |
+| TemperatureSensor | 温湿度传感器 | 温度、湿度读取 |
+| Thermostat | 空调伴侣、除湿机 | 开关、目标温度 |
+| HeaterCooler | 取暖器 | 开关、目标温度 |
+
+### 设备映射自定义
+
+当你的设备型号不在内置规则中时，Bridge 会自动从设备的 spec_data 推断类型。如果推断不准确，可以创建 `homekit_mapping.yaml` 自定义映射：
+
+```bash
+cp homekit_mapping.yaml.example homekit_mapping.yaml
+```
+
+```yaml
+# homekit_mapping.yaml
+devices:
+  zhimi.airp.mb4a: switch           # 精确 model 匹配
+  lumi.sensor_magnet.aq2: ignored   # 忽略不需要的设备
+
+fallback: auto    # auto=智能推断 | switch=全部当开关 | ignore=忽略未知
+```
+
+可用类别：`light`、`outlet`、`switch`、`temperature_sensor`、`thermostat`、`heater`、`camera`、`ignored`
 
 ## CLI 使用
 
