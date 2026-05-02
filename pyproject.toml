@@ -43,6 +43,7 @@ homekit = [
 
 [project.scripts]
 mijia-control = "mijia_cli:cli"
+mijia-mcp = "mcp_server:mcp.run"
 
 [build-system]
 requires = ["setuptools>=68.0"]
