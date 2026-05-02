@@ -19,6 +19,7 @@ dependencies = [
     "click>=8.1",
     "python-dotenv>=1.0",
     "mijiaAPI>=3.0",
+    "httpx>=0.27",
     "eventlet>=0.36",
     "gunicorn>=22.0",
 ]
