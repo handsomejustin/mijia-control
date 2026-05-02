@@ -1,6 +1,6 @@
 [project]
 name = "mijia-control"
-version = "0.1.0"
+version = "1.0.2"
 description = "米家智能设备控制系统 - Web/CLI/API 多接口"
 requires-python = ">=3.9"
 dependencies = [
