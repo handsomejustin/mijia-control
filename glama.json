@@ -1,0 +1,63 @@
+{
+  "name": "mijia-control",
+  "description": "Control Xiaomi/Mijia smart home devices (lights, AC, heaters, robots, cameras) through MCP. Includes web dashboard, REST API, CLI, SocketIO, energy monitoring, and automation rules.",
+  "url": "https://github.com/handsomejustin/mijia-control",
+  "tags": [
+    "smart-home",
+    "xiaomi",
+    "mijia",
+    "iot",
+    "home-automation",
+    "lights",
+    "ac",
+    "camera"
+  ],
+  "category": "Home Automation",
+  "serverType": "remote",
+  "transportType": "stdio",
+  "install": {
+    "type": "pip",
+    "command": "pip install -r requirements.txt && python mcp_server/run.py"
+  },
+  "tools": [
+    {
+      "name": "list_devices",
+      "description": "List all Xiaomi smart devices with their IDs, names, models, and online status."
+    },
+    {
+      "name": "get_device",
+      "description": "Get device details including specs, available properties and actions."
+    },
+    {
+      "name": "get_property",
+      "description": "Read a device property value such as brightness, temperature, or power state."
+    },
+    {
+      "name": "set_property",
+      "description": "Set a device property value to control devices (turn on/off, adjust brightness, set temperature)."
+    },
+    {
+      "name": "run_action",
+      "description": "Execute a device action such as starting robot cleaning or playing music."
+    },
+    {
+      "name": "list_scenes",
+      "description": "List all Xiaomi smart home scenes."
+    },
+    {
+      "name": "run_scene",
+      "description": "Execute a smart home scene to trigger all preset device operations."
+    },
+    {
+      "name": "list_homes",
+      "description": "List all homes with device overview."
+    },
+    {
+      "name": "get_home",
+      "description": "Get home details including all devices in that home."
+    }
+  ],
+  "requirements": {
+    "python": ">=3.9"
+  }
+}

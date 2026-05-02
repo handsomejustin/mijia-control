@@ -1,5 +1,7 @@
 # 米家 Web + CLI + API
 
+[![MCP Server](https://glama.ai/mcp/servers/handsomejustin/mijia-control/badges/score.svg)](https://glama.ai/mcp/servers/handsomejustin/mijia-control)
+
 基于 Flask 的米家智能家居设备管理平台，提供 Web UI、REST API、CLI 和 SocketIO 实时通信等多种控制接口。
 
 > **致谢**：本项目底层使用了 [Do1e/mijia-api](https://github.com/Do1e/mijia-api)（mijiaAPI v3.0+）提供的 Python SDK，
