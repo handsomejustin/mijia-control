@@ -1,8 +1,8 @@
-# 米家 Web + CLI + API
+# mijia-control
 
 [![MCP Server](https://glama.ai/mcp/servers/handsomejustin/mijia-control/badges/score.svg)](https://glama.ai/mcp/servers/handsomejustin/mijia-control)
 
-基于 Flask 的米家智能家居设备管理平台，提供 Web UI、REST API、CLI 和 SocketIO 实时通信等多种控制接口。
+AI 驱动的米家智能家居控制平台 — Web / API / CLI / MCP / HomeKit 全接口覆盖。
 
 > **致谢**：本项目底层使用了 [Do1e/mijia-api](https://github.com/Do1e/mijia-api)（mijiaAPI v3.0+）提供的 Python SDK，
 > 用于与小米云端进行设备通信、属性读写和场景执行。感谢原作者的开源贡献。
@@ -257,6 +257,13 @@ python -m app.homekit
 1. 确保手机和电脑在同一局域网
 2. iPhone → 家庭 App → 添加设备 → 扫描终端显示的 QR 码，或手动输入 PIN
 3. 配对成功后，设备会以「米家智能家居」桥接器的形式出现
+
+### iPhone 家庭 App 效果
+
+<p align="center">
+  <img src="screenshot/2.png" width="200" alt="HomeKit 家庭 App - 设备列表">
+  <img src="screenshot/3.png" width="200" alt="HomeKit 家庭 App - 设备控制">
+</p>
 
 ### 支持的设备类型
 

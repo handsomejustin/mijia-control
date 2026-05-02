@@ -1,7 +1,7 @@
 [project]
 name = "mijia-control"
 version = "1.0.2"
-description = "米家智能设备控制系统 - Web/CLI/API 多接口"
+description = "AI 驱动的米家智能家居控制平台 - Web/API/CLI/MCP/HomeKit"
 requires-python = ">=3.9"
 dependencies = [
     "flask>=3.0",
