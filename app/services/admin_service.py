@@ -42,11 +42,11 @@ class AdminService:
 
     @staticmethod
     def get_system_stats() -> dict:
+        from app.models.api_token import ApiToken
         from app.models.device_cache import DeviceCache
         from app.models.home_cache import HomeCache
         from app.models.scene_cache import SceneCache
         from app.models.xiaomi_auth import XiaomiAuth
-        from app.models.api_token import ApiToken
 
         return {
             "total_users": User.query.count(),

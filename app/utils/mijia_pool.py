@@ -2,7 +2,6 @@ import json
 import tempfile
 import threading
 from pathlib import Path
-from typing import Optional
 
 from mijiaAPI import mijiaAPI
 

@@ -1,8 +1,8 @@
 from flask import Blueprint, request
 
+from app.services.energy_service import EnergyService
 from app.utils.decorators import auth_required
 from app.utils.response import error, success
-from app.services.energy_service import EnergyService
 
 energy_bp = Blueprint("energy", __name__)
 

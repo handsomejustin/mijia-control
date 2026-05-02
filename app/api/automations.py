@@ -1,8 +1,8 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, request
 
+from app.services.automation_service import AutomationService
 from app.utils.decorators import auth_required
 from app.utils.response import error, success
-from app.services.automation_service import AutomationService
 
 automations_bp = Blueprint("automations", __name__)
 

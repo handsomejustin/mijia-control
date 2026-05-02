@@ -1,8 +1,8 @@
 from flask import Blueprint, request
-from flask_login import current_user, login_user, logout_user
+from flask_login import login_user, logout_user
 
 from app.extensions import limiter
-from app.schemas.auth import RegisterSchema, LoginSchema
+from app.schemas.auth import LoginSchema, RegisterSchema
 from app.services.auth_service import AuthService
 from app.utils.decorators import auth_required
 from app.utils.response import error, success

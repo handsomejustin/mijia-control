@@ -1,4 +1,3 @@
-import json
 import logging
 import threading
 import uuid
@@ -60,8 +59,9 @@ class XiaomiAuthService:
         if location_data.get("code", -1) == 0:
             return {"status": "already_valid"}
 
-        from urllib import parse
         import time
+        from urllib import parse
+
         import requests
 
         location_data.update({
@@ -100,9 +100,10 @@ class XiaomiAuthService:
         thread = threading.Thread(target=_poll_xiaomi_qr, args=(poll_id, app), daemon=True)
         thread.start()
 
-        import qrcode
-        from io import BytesIO
         import base64
+        from io import BytesIO
+
+        import qrcode
 
         qr = qrcode.QRCode(border=1, box_size=10)
         qr.add_data(login_data["loginUrl"])

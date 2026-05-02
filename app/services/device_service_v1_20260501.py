@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from mijiaAPI import mijiaAPI, mijiaDevice, get_device_info
+from mijiaAPI import get_device_info, mijiaDevice
 
 from app.extensions import db
 from app.models.device_cache import DeviceCache

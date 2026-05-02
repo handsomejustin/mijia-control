@@ -1,17 +1,16 @@
 import requests as http_requests
-
-from flask import current_app, flash, redirect, render_template, request, url_for, Response
+from flask import Response, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_wtf.csrf import validate_csrf
 
 from app.services.auth_service import AuthService
+from app.services.automation_service import AutomationService
+from app.services.device_group_service import DeviceGroupService
 from app.services.device_service import DeviceService
+from app.services.energy_service import EnergyService
 from app.services.home_service import HomeService
 from app.services.scene_service import SceneService
 from app.services.xiaomi_auth_service import XiaomiAuthService
-from app.services.device_group_service import DeviceGroupService
-from app.services.automation_service import AutomationService
-from app.services.energy_service import EnergyService
 
 
 def _check_csrf():

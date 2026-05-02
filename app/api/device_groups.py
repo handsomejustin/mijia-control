@@ -1,8 +1,8 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, request
 
+from app.services.device_group_service import DeviceGroupService
 from app.utils.decorators import auth_required
 from app.utils.response import error, success
-from app.services.device_group_service import DeviceGroupService
 
 device_groups_bp = Blueprint("device_groups", __name__)
 

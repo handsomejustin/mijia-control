@@ -1,10 +1,10 @@
 import re
 
 from flask import Blueprint, request
-from mijiaAPI import DeviceGetError, DeviceSetError, DeviceActionError
+from mijiaAPI import DeviceActionError, DeviceGetError, DeviceSetError
 
 from app.extensions import limiter
-from app.schemas.device import SetPropertySchema, RunActionSchema
+from app.schemas.device import RunActionSchema, SetPropertySchema
 from app.services.device_service import DeviceService
 from app.utils.decorators import auth_required, get_current_user_id
 from app.utils.response import error, success
