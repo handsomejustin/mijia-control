@@ -1,7 +1,6 @@
 """测试 DeviceService 的超时保护机制。"""
 
 import time
-from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import MagicMock, patch
 
 import pytest
