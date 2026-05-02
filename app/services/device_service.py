@@ -45,7 +45,6 @@ class DeviceService:
 
         spec_data = cached.spec_data
         if not spec_data:
-            api = api_pool.get_api(user_id)
             spec_data = get_device_info(cached.model)
             cached.spec_data = spec_data
             db.session.commit()
