@@ -75,7 +75,7 @@
 
 ### 1. Requisitos Previos
 
-- Python 3.9+
+- Python 3.10+
 - MySQL 5.7+
 
 ### 2. Instalación

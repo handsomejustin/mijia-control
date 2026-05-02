@@ -4,7 +4,7 @@
 
 [![MCP Server](https://glama.ai/mcp/servers/handsomejustin/mijia-control/badges/score.svg)](https://glama.ai/mcp/servers/handsomejustin/mijia-control)
 [![GitHub license](https://img.shields.io/github/license/handsomejustin/mijia-control)](https://github.com/handsomejustin/mijia-control/blob/main/LICENSE)
-[![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
 [![Version](https://img.shields.io/badge/version-1.0.2-green)](https://github.com/handsomejustin/mijia-control)
 [![Flask](https://img.shields.io/badge/Flask-3.0%2B-black)](https://flask.palletsprojects.com/)
 [![GitHub stars](https://img.shields.io/github/stars/handsomejustin/mijia-control?style=social)](https://github.com/handsomejustin/mijia-control)
@@ -82,7 +82,7 @@
 
 ### 1. 环境准备
 
-- Python 3.9+
+- Python 3.10+
 - MySQL 5.7+
 
 ### 2. 安装
