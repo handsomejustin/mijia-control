@@ -195,6 +195,8 @@ def get_property(did, prop_name):
         return success(result)
     except DeviceGetError as e:
         return _mijia_error_response(e)
+    except TimeoutError as e:
+        return error(str(e), 504)
     except Exception as e:
         return error(str(e), 500)
 
@@ -243,6 +245,8 @@ def set_property(did, prop_name):
         return success(result)
     except DeviceSetError as e:
         return _mijia_error_response(e)
+    except TimeoutError as e:
+        return error(str(e), 504)
     except Exception as e:
         return error(str(e), 500)
 
@@ -289,6 +293,8 @@ def run_action(did, action_name):
         return success(result)
     except DeviceActionError as e:
         return _mijia_error_response(e)
+    except TimeoutError as e:
+        return error(str(e), 504)
     except Exception as e:
         return error(str(e), 500)
 

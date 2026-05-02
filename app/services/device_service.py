@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from datetime import datetime, timezone
 
 from mijiaAPI import get_device_info, mijiaDevice
@@ -6,8 +8,21 @@ from app.extensions import db
 from app.models.device_cache import DeviceCache
 from app.utils.mijia_pool import api_pool
 
+MIJIA_CALL_TIMEOUT = 15
+
 # 摄像头型号前缀
 _CAMERA_MODEL_PREFIXES = ("chuangmi.camera.", "mijia.camera.", "isa.camera.")
+
+
+def _call_with_timeout(fn, *args, timeout=MIJIA_CALL_TIMEOUT, **kwargs):
+    executor = ThreadPoolExecutor(max_workers=1)
+    future = executor.submit(fn, *args, **kwargs)
+    try:
+        return future.result(timeout=timeout)
+    except FuturesTimeoutError:
+        raise TimeoutError(f"小米云端响应超时 ({timeout}s)")
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
 
 
 class DeviceService:
@@ -114,10 +129,10 @@ class DeviceService:
         return {"streams": streams}
 
     @staticmethod
-    def get_property(user_id: int, did: str, prop_name: str) -> dict:
+    def get_property(user_id: int, did: str, prop_name: str, timeout=MIJIA_CALL_TIMEOUT) -> dict:
         api = api_pool.get_api(user_id)
         device = mijiaDevice(api, did=did)
-        value = device.get(prop_name)
+        value = _call_with_timeout(device.get, prop_name, timeout=timeout)
         prop_info = device.prop_list.get(prop_name)
         return {
             "did": did,
@@ -127,19 +142,19 @@ class DeviceService:
         }
 
     @staticmethod
-    def set_property(user_id: int, did: str, prop_name: str, value) -> dict:
+    def set_property(user_id: int, did: str, prop_name: str, value, timeout=MIJIA_CALL_TIMEOUT) -> dict:
         api = api_pool.get_api(user_id)
         device = mijiaDevice(api, did=did)
-        device.set(prop_name, value)
+        _call_with_timeout(device.set, prop_name, value, timeout=timeout)
         _emit_device_update(user_id, did, "property_change", {"prop_name": prop_name, "value": value})
         return {"did": did, "prop_name": prop_name, "value": value}
 
     @staticmethod
-    def run_action(user_id: int, did: str, action_name: str, value=None) -> dict:
+    def run_action(user_id: int, did: str, action_name: str, value=None, timeout=MIJIA_CALL_TIMEOUT) -> dict:
         api = api_pool.get_api(user_id)
         device = mijiaDevice(api, did=did)
         kwargs = {"value": value} if value is not None else {}
-        device.run_action(action_name, **kwargs)
+        _call_with_timeout(device.run_action, action_name, timeout=timeout, **kwargs)
         _emit_device_update(user_id, did, "action_executed", {"action_name": action_name, "status": "executed"})
         return {"did": did, "action_name": action_name, "status": "executed"}
 
