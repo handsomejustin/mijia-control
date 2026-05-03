@@ -1,11 +1,12 @@
-"""测试 DeviceService 的超时保护机制。"""
+"""测试 DeviceService 的超时保护与重试机制。"""
 
 import time
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.services.device_service import DeviceService
+from app.services.device_service import DeviceService, MIJIA_CALL_TIMEOUT, MIJIA_CALL_RETRIES
 
 
 def _make_device(get_return=None, set_return=None, action_return=None, hang=False):
@@ -103,3 +104,76 @@ class TestRunActionTimeout:
 
         with pytest.raises(TimeoutError, match="超时"):
             DeviceService.run_action(1, "did123", "play", timeout=1)
+
+
+class TestTimeoutConstants:
+    """验证超时与重试常量。"""
+
+    def test_default_timeout_is_20(self):
+        assert MIJIA_CALL_TIMEOUT == 20
+
+    def test_default_retries_is_1(self):
+        assert MIJIA_CALL_RETRIES == 1
+
+
+class TestRetryMechanism:
+    """_call_with_timeout 重试机制测试。"""
+
+    def test_succeeds_on_first_try(self):
+        from app.services.device_service import _call_with_timeout
+
+        result = _call_with_timeout(lambda: 42, timeout=2, retries=1)
+        assert result == 42
+
+    def test_succeeds_on_retry_after_timeout(self):
+        from app.services.device_service import _call_with_timeout
+
+        call_count = 0
+
+        def flaky_fn():
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                time.sleep(5)  # 会触发超时
+            return "ok"
+
+        result = _call_with_timeout(flaky_fn, timeout=1, retries=1)
+        assert result == "ok"
+        assert call_count == 2
+
+    def test_exhausts_retries_and_raises(self):
+        from app.services.device_service import _call_with_timeout
+
+        def slow_fn():
+            time.sleep(5)
+
+        with pytest.raises(TimeoutError, match="超时"):
+            _call_with_timeout(slow_fn, timeout=1, retries=1)
+
+    def test_zero_retries_no_retry(self):
+        from app.services.device_service import _call_with_timeout
+
+        call_count = 0
+
+        def slow_fn():
+            nonlocal call_count
+            call_count += 1
+            time.sleep(5)
+
+        with pytest.raises(TimeoutError, match="超时"):
+            _call_with_timeout(slow_fn, timeout=1, retries=0)
+        assert call_count == 1
+
+    def test_non_timeout_error_not_retried(self):
+        from app.services.device_service import _call_with_timeout
+
+        call_count = 0
+
+        def bad_fn():
+            nonlocal call_count
+            call_count += 1
+            raise ValueError("bad")
+
+        with pytest.raises(ValueError, match="bad"):
+            _call_with_timeout(bad_fn, timeout=2, retries=2)
+        assert call_count == 1

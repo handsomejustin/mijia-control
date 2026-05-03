@@ -8,21 +8,29 @@ from app.extensions import db
 from app.models.device_cache import DeviceCache
 from app.utils.mijia_pool import api_pool
 
-MIJIA_CALL_TIMEOUT = 15
+MIJIA_CALL_TIMEOUT = 20
+MIJIA_CALL_RETRIES = 1
 
 # 摄像头型号前缀
 _CAMERA_MODEL_PREFIXES = ("chuangmi.camera.", "mijia.camera.", "isa.camera.")
 
 
-def _call_with_timeout(fn, *args, timeout=MIJIA_CALL_TIMEOUT, **kwargs):
-    executor = ThreadPoolExecutor(max_workers=1)
-    future = executor.submit(fn, *args, **kwargs)
-    try:
-        return future.result(timeout=timeout)
-    except FuturesTimeoutError:
-        raise TimeoutError(f"小米云端响应超时 ({timeout}s)")
-    finally:
-        executor.shutdown(wait=False, cancel_futures=True)
+def _call_with_timeout(fn, *args, timeout=MIJIA_CALL_TIMEOUT, retries=MIJIA_CALL_RETRIES, **kwargs):
+    last_exc = None
+    for attempt in range(1 + retries):
+        executor = ThreadPoolExecutor(max_workers=1)
+        future = executor.submit(fn, *args, **kwargs)
+        try:
+            return future.result(timeout=timeout)
+        except FuturesTimeoutError:
+            last_exc = TimeoutError(f"小米云端响应超时 ({timeout}s)")
+            executor.shutdown(wait=False, cancel_futures=True)
+        except Exception:
+            executor.shutdown(wait=False, cancel_futures=True)
+            raise
+        else:
+            executor.shutdown(wait=False, cancel_futures=True)
+    raise last_exc
 
 
 class DeviceService:
