@@ -1,12 +1,11 @@
 """测试 DeviceService 的超时保护与重试机制。"""
 
 import time
-from concurrent.futures import TimeoutError as FuturesTimeoutError
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.services.device_service import DeviceService, MIJIA_CALL_TIMEOUT, MIJIA_CALL_RETRIES
+from app.services.device_service import MIJIA_CALL_RETRIES, MIJIA_CALL_TIMEOUT, DeviceService
 
 
 def _make_device(get_return=None, set_return=None, action_return=None, hang=False):
