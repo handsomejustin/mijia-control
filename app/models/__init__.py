@@ -1,5 +1,7 @@
 from app.models.api_token import ApiToken
 from app.models.automation_rule import AutomationRule
+from app.models.ble_device import BLEDevice
+from app.models.ble_reading import BLESensorReading
 from app.models.device_cache import DeviceCache
 from app.models.device_group import DeviceGroup, device_group_members
 from app.models.energy_log import EnergyLog
@@ -19,4 +21,6 @@ __all__ = [
     "device_group_members",
     "AutomationRule",
     "EnergyLog",
+    "BLEDevice",
+    "BLESensorReading",
 ]

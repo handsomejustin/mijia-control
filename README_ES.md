@@ -27,6 +27,7 @@
 - **Gestión de tokens API** — Creación y gestión de tokens de acceso para aplicaciones de terceros
 - **Servidor MCP** — Soporte integrado del protocolo MCP; Claude Code, Hermes Agent y otros Agentes IA pueden controlar dispositivos directamente
 - **Puente HomeKit** — Control de dispositivos Mijia desde la app Hogar de Apple y Siri; compatible con luces, enchufes, sensores, termostatos y más
+- **Sensores BLE Bluetooth** — Conexión directa via Bluetooth del PC a termómetros Xiaomi BLE, recopilación de datos local en tiempo real, disparadores de automatización
 - **Multiusuario y permisos** — Registro de usuarios, panel de administración, limitación de solicitudes
 
 ## Stack Tecnológico
@@ -45,6 +46,7 @@
 | SDK Mijia | [mijiaAPI](https://github.com/Do1e/mijia-api) >= 3.0 |
 | Protocolo MCP | [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) >= 1.6 |
 | HomeKit | [HAP-Python](https://github.com/ikalchev/HAP-python) >= 5.0 |
+| Escaneo BLE | [bleak](https://github.com/hbldh/bleak) >= 0.22 |
 | Calidad de Código | Ruff (lint + formato) |
 | Tests | pytest |
 
@@ -61,7 +63,8 @@
 │   ├── schemas/             # Serialización/validación Marshmallow
 │   ├── utils/               # Adaptador MijiaAPI, helpers de respuesta, decoradores
 │   ├── cli/                 # Comandos Click CLI
-│   └── homekit/             # Puente HomeKit
+│   ├── homekit/             # Puente HomeKit
+│   └── ble/                 # Demonio de sensores BLE Bluetooth (proceso independiente)
 ├── mcp_server/              # Servidor MCP (herramientas para Agentes IA)
 ├── config/                  # Configuración Flask (development/testing/production)
 ├── migrations/              # Scripts de migración Alembic
@@ -136,6 +139,7 @@ Visita http://127.0.0.1:5000, registra una cuenta y listo.
 | Grupos | `/api/groups/` | CRUD de grupos, favoritos |
 | Automatizaciones | `/api/automations/` | CRUD de reglas programadas, activar/desactivar |
 | Energía | `/api/energy/` | Registros de energía, diario/horario/último |
+| Sensores BLE | `/api/ble/` | Registro de dispositivos BLE, reporte de datos, consulta histórica |
 | Tokens API | `/api/tokens/` | Gestión de tokens para integración con terceros |
 
 Documentación completa de la API disponible en `/api/docs/` tras iniciar el servidor.
@@ -206,6 +210,9 @@ claude mcp add mijia -- python -m mcp_server
 | `run_scene` | Ejecutar una escena |
 | `list_homes` | Listar hogares |
 | `get_home` | Ver detalles del hogar |
+| `list_ble_devices` | Listar dispositivos sensores BLE |
+| `get_ble_sensor` | Obtener datos del sensor BLE |
+| `get_ble_readings` | Consultar historial del sensor BLE |
 
 ## Puente HomeKit (Apple Home y Siri)
 
@@ -291,6 +298,63 @@ fallback: auto    # auto=inferencia inteligente | switch=todo como interruptor |
 
 Categorías disponibles: `light`, `outlet`, `switch`, `temperature_sensor`, `thermostat`, `heater`, `camera`, `ignored`
 
+## Sensores BLE Bluetooth (Recopilación Local de Datos)
+
+Conecta termómetros Xiaomi BLE directamente vía Bluetooth del PC — sin hardware de gateway adicional. Compatible con visualización de datos, consulta histórica y disparadores de automatización.
+
+### Arquitectura
+
+```
+Termómetro BLE  ─BLE broadcast→  BLE Scanner (independiente)  ─HTTP POST→  Flask API  →  DB
+                                  python -m app.ble                          python run.py
+```
+
+### Instalación
+
+```bash
+pip install -e ".[ble]"
+```
+
+> Requiere PC con capacidad Bluetooth (Windows 10/11 tiene soporte integrado).
+
+### Configuración
+
+Añade a `.env`:
+
+```env
+BLE_ENABLED=true
+```
+
+Asegúrate de que `MIJIA_TOKEN` esté configurado (igual que MCP Server / puente HomeKit).
+
+### Inicio Rápido
+
+```bash
+# 1. Escanear dispositivos BLE cercanos para encontrar la dirección MAC
+mijia-control ble scan
+
+# 2. Registrar dispositivo BLE (obtiene la clave de descifrado automáticamente)
+mijia-control ble register --did "blt.3.xxxxx" --mac "A4:C1:38:XX:XX:XX"
+
+# 3. Iniciar demonio BLE (requiere servicio Web en ejecución)
+python run.py           # Terminal 1
+python -m app.ble       # Terminal 2
+
+# 4. Ver datos
+mijia-control ble list
+mijia-control ble readings "blt.3.xxxxx" --hours 24
+```
+
+### Dispositivos Soportados
+
+| Dispositivo | Modelo | Datos |
+|-------------|--------|-------|
+| Sensor Temp/Humedad Mini | LYWSD03MMC | Temperatura, humedad, batería |
+| Sensor Temp/Humedad (redondo) | LYWSDCGQ | Temperatura, humedad, batería |
+| Sensor Temp/Humedad (nuevo) | MJWSD05MMC | Temperatura, humedad, batería |
+
+📖 **Documentación completa**: [docs/ble.md](docs/ble.md) — arquitectura, configuración, depuración, resolución de problemas, extensión a nuevos dispositivos.
+
 ## Uso de CLI
 
 Tras instalar y activar el venv, el comando `mijia-control` está disponible (sin contexto Flask):
@@ -331,6 +395,15 @@ mijia-control scene list --refresh             # Forzar actualización
 mijia-control scene run <scene_id>             # Ejecutar escena
 mijia-control home list                        # Listar hogares
 mijia-control home show <home_id>              # Detalles del hogar
+```
+
+### Sensores BLE Bluetooth
+
+```bash
+mijia-control ble scan                          # Escanear dispositivos BLE cercanos
+mijia-control ble register --did <did> --mac <mac>  # Registrar dispositivo BLE
+mijia-control ble list                          # Listar dispositivos BLE con últimas lecturas
+mijia-control ble readings <did> --hours 24     # Consultar historial de lecturas
 ```
 
 ## Desarrollo

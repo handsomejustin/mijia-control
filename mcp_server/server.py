@@ -149,3 +149,34 @@ async def get_home(home_id: str) -> dict:
         home_id: 家庭ID
     """
     return await _request("GET", f"/homes/{home_id}")
+
+
+# ── BLE 蓝牙传感器 ──
+
+
+@mcp.tool()
+async def list_ble_devices() -> dict:
+    """列出所有已注册的蓝牙传感器设备，返回设备信息和最新温湿度读数。"""
+    return await _request("GET", "/ble/devices")
+
+
+@mcp.tool()
+async def get_ble_sensor(did: str) -> dict:
+    """获取蓝牙传感器的最新温湿度数据和设备详情。
+
+    Args:
+        did: BLE 设备ID，如 blt.3.xxxxx
+    """
+    return await _request("GET", f"/ble/devices/{did}")
+
+
+@mcp.tool()
+async def get_ble_readings(did: str, hours: int = 24, limit: int = 100) -> dict:
+    """查询蓝牙传感器的历史温湿度读数，用于趋势分析。
+
+    Args:
+        did: BLE 设备ID
+        hours: 查询最近多少小时的数据，默认 24
+        limit: 最大返回条数，默认 100
+    """
+    return await _request("GET", f"/ble/devices/{did}/readings", params={"hours": hours, "limit": limit})

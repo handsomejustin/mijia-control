@@ -247,6 +247,66 @@ def home_show(home_id):
 
 # ── Flask CLI 集成 ──
 
+
+@cli.group("ble")
+def ble_grp():
+    """蓝牙传感器管理"""
+    pass
+
+
+@ble_grp.command("list")
+def ble_list():
+    """列出 BLE 设备及最新读数"""
+    _api_request("GET", "/ble/devices")
+
+
+@ble_grp.command("register")
+@click.option("--did", required=True, help="设备 ID，如 blt.3.xxxxx")
+@click.option("--mac", required=True, help="设备 MAC 地址，如 AA:BB:CC:DD:EE:FF")
+@click.option("--bindkey", default=None, help="绑定密钥（不提供则自动从云端获取）")
+def ble_register(did, mac, bindkey):
+    """注册 BLE 设备"""
+    data = {"did": did, "mac_address": mac}
+    if bindkey:
+        data["bindkey"] = bindkey
+    _api_request("POST", "/ble/devices", data=data)
+
+
+@ble_grp.command("scan")
+@click.option("--timeout", default=10, help="扫描超时（秒）")
+def ble_scan(timeout):
+    """扫描附近的 BLE 设备，发现 MAC 地址"""
+    import asyncio
+
+    try:
+        from bleak import BleakScanner
+    except ImportError:
+        click.echo(json.dumps({"error": "请先安装 bleak: pip install bleak"}, ensure_ascii=False))
+        sys.exit(1)
+
+    async def _scan():
+        click.echo(f"正在扫描 BLE 设备（{timeout}秒）...")
+        devices = await BleakScanner.discover(timeout=timeout)
+        results = []
+        for d in devices:
+            results.append({"name": d.name or "未知", "address": d.address})
+        click.echo(json.dumps(results, ensure_ascii=False, indent=2))
+
+    asyncio.run(_scan())
+
+
+@ble_grp.command("readings")
+@click.argument("did")
+@click.option("--hours", default=24, help="查询最近 N 小时")
+@click.option("--limit", default=50, help="最大返回条数")
+def ble_readings(did, hours, limit):
+    """查询 BLE 设备历史读数"""
+    _api_request("GET", f"/ble/devices/{did}/readings", params={"hours": hours, "limit": limit})
+
+
+# ── Flask CLI 集成 ──
+
+
 def register_cli(app):
     """将 CLI 命令注册到 Flask CLI（兼容 flask mijia 用法）"""
     app.cli.add_command(cli, name="mijia")

@@ -27,6 +27,7 @@
 - **API Token Management** — Create and manage access tokens for third-party apps
 - **MCP Server** — Built-in MCP protocol support; Claude Code, Hermes Agent, and other AI Agents can control devices directly
 - **HomeKit Bridge** — Control Mijia devices via Apple Home App and Siri; supports lights, outlets, sensors, thermostats, and more
+- **BLE Bluetooth Sensors** — PC Bluetooth direct connection to Xiaomi BLE thermometers, local real-time data collection, automation triggers
 - **Multi-user & Permissions** — User registration, admin panel, rate limiting
 
 ## Tech Stack
@@ -45,6 +46,7 @@
 | Mijia SDK | [mijiaAPI](https://github.com/Do1e/mijia-api) >= 3.0 |
 | MCP Protocol | [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) >= 1.6 |
 | HomeKit | [HAP-Python](https://github.com/ikalchev/HAP-python) >= 5.0 |
+| BLE Scanning | [bleak](https://github.com/hbldh/bleak) >= 0.22 |
 | Code Quality | Ruff (lint + format) |
 | Testing | pytest |
 
@@ -61,7 +63,8 @@
 │   ├── schemas/             # Marshmallow serialization/validation
 │   ├── utils/               # MijiaAPI adapter, response helpers, decorators
 │   ├── cli/                 # Click CLI commands
-│   └── homekit/             # HomeKit Bridge
+│   ├── homekit/             # HomeKit Bridge
+│   └── ble/                 # BLE Bluetooth sensor daemon (independent process)
 ├── mcp_server/              # MCP Server (AI Agent tools)
 ├── config/                  # Flask config (development/testing/production)
 ├── migrations/              # Alembic migration scripts
@@ -136,6 +139,7 @@ Visit http://127.0.0.1:5000, register an account, and you're good to go.
 | Groups | `/api/groups/` | Group CRUD, favorites |
 | Automations | `/api/automations/` | Scheduled rules CRUD, enable/disable |
 | Energy | `/api/energy/` | Energy records, daily/hourly/latest |
+| BLE Sensors | `/api/ble/` | BLE device registration, data reporting, history query |
 | API Tokens | `/api/tokens/` | Token management for third-party integration |
 
 Full API docs available at `/api/docs/` after starting the server.
@@ -206,6 +210,9 @@ claude mcp add mijia -- python -m mcp_server
 | `run_scene` | Execute a scene |
 | `list_homes` | List homes |
 | `get_home` | View home details |
+| `list_ble_devices` | List BLE sensor devices |
+| `get_ble_sensor` | Get latest BLE sensor data |
+| `get_ble_readings` | Query BLE sensor history |
 
 ## HomeKit Bridge (Apple Home & Siri)
 
@@ -291,6 +298,86 @@ fallback: auto    # auto=smart inference | switch=all as switch | ignore=ignore 
 
 Available categories: `light`, `outlet`, `switch`, `temperature_sensor`, `thermostat`, `heater`, `camera`, `ignored`
 
+## BLE Bluetooth Sensors (Local Data Collection)
+
+Connect Xiaomi BLE thermometers directly via PC Bluetooth — no extra gateway hardware needed. Supports data display, history query, and automation triggers.
+
+### Architecture
+
+```
+BLE Thermometer  ─BLE broadcast→  BLE Scanner (independent)  ─HTTP POST→  Flask API  →  DB
+                                  python -m app.ble                          python run.py
+```
+
+### Install
+
+```bash
+pip install -e ".[ble]"
+```
+
+> Requires PC with Bluetooth capability (Windows 10/11 has built-in support).
+
+### Configure
+
+Add to `.env`:
+
+```env
+BLE_ENABLED=true
+```
+
+Ensure `MIJIA_TOKEN` is set (same as MCP Server / HomeKit Bridge).
+
+### Quick Start
+
+```bash
+# 1. Scan nearby BLE devices to find MAC address
+mijia-control ble scan
+
+# 2. Register BLE device (auto-fetches decryption key from cloud)
+mijia-control ble register --did "blt.3.xxxxx" --mac "A4:C1:38:XX:XX:XX"
+
+# 3. Start BLE daemon (requires Web service running)
+python run.py           # Terminal 1
+python -m app.ble       # Terminal 2
+
+# 4. View data
+mijia-control ble list
+mijia-control ble readings "blt.3.xxxxx" --hours 24
+```
+
+### Supported Devices
+
+| Device | Model | Data |
+|--------|-------|------|
+| Mijia Temp/Humidity Mini | LYWSD03MMC | Temperature, humidity, battery |
+| Mijia Temp/Humidity (round) | LYWSDCGQ | Temperature, humidity, battery |
+| Mijia Temp/Humidity (new) | MJWSD05MMC | Temperature, humidity, battery |
+
+### Automation Triggers
+
+BLE sensor data can trigger automation rules, e.g., turn on AC when temp > 30°C:
+
+```bash
+curl -X POST http://127.0.0.1:5000/api/automations \
+  -H "Authorization: Bearer $MIJIA_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Auto AC on high temp",
+    "trigger_type": "ble_sensor",
+    "trigger_config": {
+      "did": "blt.3.xxxxx",
+      "metric": "temperature",
+      "operator": ">",
+      "threshold": 30.0,
+      "cooldown_seconds": 300
+    },
+    "action_type": "set_property",
+    "action_config": {"did": "ac_did", "prop_name": "power", "value": "on"}
+  }'
+```
+
+📖 **Full documentation**: [docs/ble.md](docs/ble.md) — architecture, setup, debugging, troubleshooting, extending new devices.
+
 ## CLI Usage
 
 After installing and activating the venv, the `mijia-control` command is available (no Flask context needed):
@@ -348,6 +435,15 @@ mijia-control scene list --refresh             # Force refresh
 mijia-control scene run <scene_id>             # Execute scene
 mijia-control home list                        # List homes
 mijia-control home show <home_id>              # Home details
+```
+
+### BLE Bluetooth Sensors
+
+```bash
+mijia-control ble scan                          # Scan nearby BLE devices
+mijia-control ble register --did <did> --mac <mac>  # Register BLE device
+mijia-control ble list                          # List BLE devices with latest readings
+mijia-control ble readings <did> --hours 24     # Query history readings
 ```
 
 ## Development
