@@ -18,6 +18,7 @@ class DeviceCategory(StrEnum):
     SWITCH = "switch"
     CAMERA = "camera"
     HEATER = "heater"
+    DEHUMIDIFIER = "dehumidifier"
     IGNORED = "ignored"
 
 
@@ -42,7 +43,8 @@ _MODEL_RULES: list[tuple[str, DeviceCategory]] = [
     # 取暖器
     ("heater", DeviceCategory.HEATER),
     # 除湿机
-    ("derh", DeviceCategory.THERMOSTAT),
+    ("deye.derh", DeviceCategory.DEHUMIDIFIER),
+    ("derh", DeviceCategory.DEHUMIDIFIER),
     # 插座/开关
     ("chuangmi.plug", DeviceCategory.OUTLET),
     ("zimi.plug", DeviceCategory.OUTLET),
