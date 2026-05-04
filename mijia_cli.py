@@ -2,6 +2,7 @@
 import json
 import os
 import sys
+from urllib.parse import quote
 
 if sys.platform == "win32":
     sys.stdout.reconfigure(encoding="utf-8")
@@ -11,6 +12,11 @@ import click
 
 CONFIG_DIR = os.path.expanduser("~/.config/mijia-control")
 TOKEN_FILE = os.path.join(CONFIG_DIR, "token.json")
+
+
+def _did(did):
+    """URL-encode DID for use in API paths (handles # and other special chars)."""
+    return quote(str(did), safe="")
 
 
 def _get_base_url():
@@ -141,7 +147,7 @@ def device_list(home_id, refresh):
 @click.argument("did")
 def device_show(did):
     """查看设备详情"""
-    _api_request("GET", f"/devices/{did}")
+    _api_request("GET", f"/devices/{_did(did)}")
 
 
 @device_grp.command("get")
@@ -149,7 +155,7 @@ def device_show(did):
 @click.argument("prop_name")
 def device_get(did, prop_name):
     """读取设备属性"""
-    _api_request("GET", f"/devices/{did}/props/{prop_name}")
+    _api_request("GET", f"/devices/{_did(did)}/props/{prop_name}")
 
 
 @device_grp.command("set")
@@ -173,7 +179,7 @@ def device_set(did, prop_name, value):
                     parsed_value = float(value)
                 except ValueError:
                     parsed_value = value
-    _api_request("PUT", f"/devices/{did}/props/{prop_name}", data={"value": parsed_value})
+    _api_request("PUT", f"/devices/{_did(did)}/props/{prop_name}", data={"value": parsed_value})
 
 
 @device_grp.command("action")
@@ -188,7 +194,7 @@ def device_action(did, action_name, value):
             data["value"] = json.loads(value)
         except json.JSONDecodeError:
             data["value"] = value
-    _api_request("POST", f"/devices/{did}/actions/{action_name}", data=data)
+    _api_request("POST", f"/devices/{_did(did)}/actions/{action_name}", data=data)
 
 
 # ── 场景管理 ──
@@ -300,7 +306,7 @@ def ble_scan(timeout):
 @click.option("--limit", default=50, help="最大返回条数")
 def ble_readings(did, hours, limit):
     """查询 BLE 设备历史读数"""
-    _api_request("GET", f"/ble/devices/{did}/readings", params={"hours": hours, "limit": limit})
+    _api_request("GET", f"/ble/devices/{_did(did)}/readings", params={"hours": hours, "limit": limit})
 
 
 if __name__ == "__main__":

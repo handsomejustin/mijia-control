@@ -31,7 +31,7 @@
     {% endif %}
 
     {% if device.spec_data and device.spec_data.properties %}
-    {% set rw_props = device.spec_data.properties | selectattr('rw', 'search', 'rw') | rejectattr('name', 'equalto', 'on') | list %}
+    {% set rw_props = device.spec_data.properties | rejectattr('rw', 'equalto', 'r') | selectattr('rw') | rejectattr('name', 'equalto', 'on') | list %}
     {% set ro_props = device.spec_data.properties | selectattr('rw', 'equalto', 'r') | list %}
 
     {% if rw_props %}

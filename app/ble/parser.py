@@ -96,3 +96,21 @@ class MJWSD05MMCParser(PayloadParser):
         if len(payload) >= 6:
             result["battery"] = payload[5]
         return result
+
+
+@register_parser
+class MJWSD06MMCParser(PayloadParser):
+    model = "mjwsd06mmc"
+    capabilities = ["temperature", "humidity", "battery"]
+
+    def parse(self, payload: bytes) -> dict:
+        result = {}
+        if len(payload) >= 2:
+            temp = struct.unpack_from("<h", payload, 0)[0]
+            result["temperature"] = round(temp / 10, 1)
+        if len(payload) >= 4:
+            humidity = struct.unpack_from("<H", payload, 2)[0]
+            result["humidity"] = round(humidity / 10, 1)
+        if len(payload) >= 6:
+            result["battery"] = payload[5]
+        return result

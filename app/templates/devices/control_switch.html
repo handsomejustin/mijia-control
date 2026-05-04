@@ -8,7 +8,7 @@
 {% set has_charging = 'charging-state' in props %}
 
 {# 找出所有 rw 的非布尔属性用于分段选择器 #}
-{% set rw_props = device.spec_data.properties | selectattr('rw', 'search', 'rw') | rejectattr('name', 'equalto', 'on') | rejectattr('name', 'equalto', 'physical-controls-locked') | rejectattr('name', 'equalto', 'indicator-light-on') | rejectattr('type', 'equalto', 'string') | list %}
+{% set rw_props = device.spec_data.properties | rejectattr('rw', 'equalto', 'r') | selectattr('rw') | rejectattr('name', 'equalto', 'on') | rejectattr('name', 'equalto', 'physical-controls-locked') | rejectattr('name', 'equalto', 'indicator-light-on') | rejectattr('type', 'equalto', 'string') | list %}
 
 {# 找出只读状态属性 #}
 {% set ro_props = device.spec_data.properties | selectattr('rw', 'equalto', 'r') | rejectattr('type', 'equalto', 'string') | list %}
