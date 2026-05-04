@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}{{ device.name }} - 米家控制{% endblock %}
+
+{% block content %}
+{% set props = device.spec_data.properties | map(attribute='name') | list %}
+{% set has_temp = 'temperature' in props %}
+{% set has_humidity = 'relative-humidity' in props %}
+{% set has_battery = 'battery-level' in props %}
+
+{% if has_temp %}
+{% set temp_prop = device.spec_data.properties | selectattr('name', 'equalto', 'temperature') | first %}
+{% endif %}
+{% if has_humidity %}
+{% set humi_prop = device.spec_data.properties | selectattr('name', 'equalto', 'relative-humidity') | first %}
+{% endif %}
+
+{% include "devices/components/breadcrumb.html" %}
+
+<div x-data="sensorPage()">
+    <div class="bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 p-5 sm:p-6 mb-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <div class="flex items-center gap-3 mb-1">
+                    <span class="inline-block w-3 h-3 rounded-full {% if device.is_online %}bg-emerald-400{% else %}bg-slate-300 dark:bg-slate-600{% endif %}"></span>
+                    <h1 class="font-heading text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{{ device.name }}</h1>
+                </div>
+                <p class="text-sm text-slate-500 dark:text-slate-400 ml-6">
+                    型号: <span class="font-mono">{{ device.model or '未知' }}</span>
+                </p>
+            </div>
+            {% if has_battery %}
+            <div class="text-right">
+                <div class="flex items-center gap-1.5">
+                    <span class="text-xs text-slate-400">电量</span>
+                    <span class="text-sm font-bold" :class="battery > 20 ? 'text-emerald-500' : 'text-red-500'" x-text="battery + '%'"></span>
+                </div>
+                <div class="w-16 h-2 bg-slate-200 dark:bg-slate-600 rounded-full mt-1 overflow-hidden">
+                    <div class="h-full rounded-full transition-all duration-500" :class="battery > 20 ? 'bg-emerald-400' : 'bg-red-400'" :style="'width:' + battery + '%'"></div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if has_temp or has_humidity %}
+    <div class="grid {{ 'grid-cols-2' if has_temp and has_humidity else 'grid-cols-1' }} gap-4">
+        {% if has_temp %}
+        <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700/50 text-center">
+            <p class="text-xs text-slate-400 dark:text-slate-500 mb-2">当前温度</p>
+            <div class="flex items-end justify-center gap-0.5 mb-4">
+                <span class="text-[4rem] leading-none font-extralight tracking-tight text-orange-400" x-text="temp"></span>
+                <span class="text-xl text-slate-300 mb-3">°C</span>
+            </div>
+            <div class="relative h-2 bg-gradient-to-r from-blue-200 via-emerald-200 to-red-300 rounded-full mx-4">
+                {% if temp_prop.range %}
+                <div class="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-md border-2 border-orange-400 transition-all duration-500"
+                     :style="'left: calc(' + Math.max(0, Math.min(100, (temp - {{ temp_prop.range[0] }}) / ({{ temp_prop.range[1] - temp_prop.range[0] }}) * 100)) + '% - 8px)'"></div>
+                {% endif %}
+            </div>
+            {% if temp_prop.range %}
+            <div class="flex justify-between mt-2 text-xs text-slate-300 mx-4">
+                <span>{{ temp_prop.range[0] }}°C</span>
+                <span>{{ temp_prop.range[1] }}°C</span>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        {% if has_humidity %}
+        <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700/50 text-center">
+            <p class="text-xs text-slate-400 dark:text-slate-500 mb-2">当前湿度</p>
+            <div class="flex items-end justify-center gap-0.5 mb-4">
+                <span class="text-[4rem] leading-none font-extralight tracking-tight text-blue-400" x-text="humidity"></span>
+                <span class="text-xl text-slate-300 mb-3">%</span>
+            </div>
+            <div class="relative h-2 bg-gradient-to-r from-amber-200 via-emerald-200 to-blue-400 rounded-full mx-4">
+                {% if humi_prop.range %}
+                <div class="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-md border-2 border-blue-400 transition-all duration-500"
+                     :style="'left: calc(' + Math.max(0, Math.min(100, humidity / {{ humi_prop.range[1] }} * 100)) + '% - 8px)'"></div>
+                {% endif %}
+            </div>
+            {% if humi_prop.range %}
+            <div class="flex justify-between mt-2 text-xs text-slate-300 mx-4">
+                <span>{{ humi_prop.range[0] }}%</span>
+                <span>{{ humi_prop.range[1] }}%</span>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% include "devices/components/device_js.html" %}
+<script>
+function sensorPage() {
+    return {
+        temp: '--', humidity: '--', battery: 0,
+
+        init() {
+            const load = (name, setter) => getPropValue(name).then(v => { if (v !== null) setter(v); }).catch(() => {});
+            {% if has_temp %}load('temperature', v => this.temp = v);{% endif %}
+            {% if has_humidity %}load('relative-humidity', v => this.humidity = v);{% endif %}
+            {% if has_battery %}load('battery-level', v => this.battery = v);{% endif %}
+        }
+    }
+}
+
+function onDeviceUpdate(propName, value) {
+    const el = document.querySelector('[x-data="sensorPage()"]');
+    if (!el) return;
+    const d = Alpine.$data(el);
+    switch (propName) {
+        case 'temperature': d.temp = value; break;
+        case 'relative-humidity': d.humidity = value; break;
+        case 'battery-level': d.battery = value; break;
+    }
+}
+</script>
+{% endblock %}

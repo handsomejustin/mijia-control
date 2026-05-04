@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}{{ device.name }} - 米家控制{% endblock %}
+
+{% block content %}
+{% set props = device.spec_data.properties | map(attribute='name') | list %}
+{% set has_on = 'on' in props %}
+{% set has_battery = 'battery-level' in props %}
+{% set has_charging = 'charging-state' in props %}
+
+{# 找出所有 rw 的非布尔属性用于分段选择器 #}
+{% set rw_props = device.spec_data.properties | selectattr('rw', 'search', 'rw') | rejectattr('name', 'equalto', 'on') | rejectattr('name', 'equalto', 'physical-controls-locked') | rejectattr('name', 'equalto', 'indicator-light-on') | rejectattr('type', 'equalto', 'string') | list %}
+
+{# 找出只读状态属性 #}
+{% set ro_props = device.spec_data.properties | selectattr('rw', 'equalto', 'r') | rejectattr('type', 'equalto', 'string') | list %}
+
+{# 关键控制属性 #}
+{% set key_controls = ['sweep-mop-type', 'suction-level', 'mode', 'fan-level', 'mop-water-output-level'] %}
+
+{% include "devices/components/breadcrumb.html" %}
+
+<div x-data="switchControl()">
+    {% include "devices/components/device_header.html" %}
+
+    <div :class="!on && 'opacity-40 pointer-events-none'" class="transition-opacity duration-300">
+
+        {# 运行状态卡片 #}
+        {% if 'status' in props %}
+        <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700/50 mb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-full flex items-center justify-center"
+                     :class="isRunning ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-slate-100 dark:bg-slate-700'">
+                    <span class="text-2xl" x-text="isRunning ? '🌀' : '⏹'"></span>
+                </div>
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200">运行状态</h3>
+                    <p class="text-sm mt-0.5" :class="isRunning ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'" x-text="statusText"></p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {# 核心控制区 #}
+        {% for prop in rw_props %}
+        {% if prop.name in key_controls %}
+        {% if prop.value_list and prop.value_list|length <= 6 %}
+        <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 mb-4"
+             x-data="{ val: 0 }" x-init="getPropValue('{{ prop.name }}').then(v => { if (v !== null) val = v; }).catch(() => {})">
+            <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">{{ prop.desc_zh_cn or prop.description or prop.name }}</h3>
+            <div class="grid grid-cols-{{ prop.value_list|length if prop.value_list|length <= 4 else 4 }} gap-2">
+                {% for item in prop.value_list %}
+                <button class="py-2 px-2 rounded-xl text-sm font-medium transition-all duration-200 border"
+                        :class="val === {{ item.value }} ? 'bg-blue-500 text-white border-blue-500 shadow-sm' : 'bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:bg-slate-100'"
+                        @click="val = {{ item.value }}; setProp('{{ prop.name }}', {{ item.value }})">
+                    {{ item.desc_zh_cn or item.description }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+        {% elif prop.range %}
+        <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 mb-4"
+             x-data="{ val: {{ prop.range[0] }} }" x-init="getPropValue('{{ prop.name }}').then(v => { if (v !== null) val = v; }).catch(() => {})">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200">{{ prop.desc_zh_cn or prop.description or prop.name }}</h3>
+                <span class="text-sm font-bold text-blue-500" x-text="val + '{{ prop.unit or '' }}'"></span>
+            </div>
+            <input type="range" min="{{ prop.range[0] }}" max="{{ prop.range[1] }}" step="{{ prop.range[2] if prop.range|length > 2 else 1 }}"
+                   x-model.number="val" @change="setProp('{{ prop.name }}', val)"
+                   class="w-full h-2 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer
+                          [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6
+                          [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 [&::-webkit-slider-thumb]:shadow-md
+                          [&::-webkit-slider-thumb]:cursor-pointer">
+        </div>
+        {% endif %}
+        {% endif %}
+        {% endfor %}
+
+        {# 状态指示器 #}
+        {% if has_battery or has_charging %}
+        <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50">
+            <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">设备状态</h3>
+            <div class="grid grid-cols-{{ 2 if has_battery and has_charging else 1 }} gap-3">
+                {% if has_battery %}
+                <div class="text-center p-3 rounded-xl bg-slate-50 dark:bg-slate-700/50">
+                    <div class="text-lg mb-1">🔋</div>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">电量: <span x-text="battery + '%'"></span></p>
+                </div>
+                {% endif %}
+                {% if has_charging %}
+                <div class="text-center p-3 rounded-xl bg-slate-50 dark:bg-slate-700/50">
+                    <div class="text-lg mb-1" x-text="charging ? '⚡' : '🔌'"></div>
+                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400" x-text="charging ? '充电中' : '未充电'"></p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% include "devices/components/device_js.html" %}
+<script>
+function switchControl() {
+    return {
+        on: false, loading: false,
+        {% if 'status' in props %}
+        statusVal: 0,
+        statusText: '--',
+        isRunning: false,
+        {% endif %}
+        battery: 0, charging: false,
+
+        init() {
+            const load = (name, setter) => getPropValue(name).then(v => { if (v !== null) setter(v); }).catch(() => {});
+            load('on', v => this.on = v);
+            {% if 'status' in props %}
+            load('status', v => {
+                this.statusVal = v;
+                this.isRunning = ![0, 5, 10, 11, 14, 20].includes(v);
+                const statusMap = {{ device.spec_data.properties | selectattr('name', 'equalto', 'status') | first | default({}) | tojson }};
+                if (statusMap.value_list) {
+                    const found = statusMap.value_list.find(i => i.value === v);
+                    this.statusText = found ? (found.desc_zh_cn || found.description) : '未知';
+                }
+            });
+            {% endif %}
+            {% if has_battery %}load('battery-level', v => this.battery = v);{% endif %}
+            {% if has_charging %}load('charging-state', v => this.charging = v === 0 || v === 'Charging');{% endif %}
+        }
+    }
+}
+
+function onDeviceUpdate(propName, value) {
+    const el = document.querySelector('[x-data="switchControl()"]');
+    if (!el) return;
+    const d = Alpine.$data(el);
+    switch (propName) {
+        case 'on': d.on = value; break;
+        case 'battery-level': d.battery = value; break;
+        case 'charging-state': d.charging = value === 0 || value === 'Charging'; break;
+    }
+}
+</script>
+{% endblock %}
