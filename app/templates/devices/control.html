@@ -2,11 +2,21 @@
 {% block title %}{{ device.name }} - 米家控制{% endblock %}
 
 {% block content %}
-{% set props = device.spec_data.properties | map(attribute='name') | list if device.spec_data and device.spec_data.properties else [] %}
+{% set raw_props = device.spec_data.properties if device.spec_data and device.spec_data.properties else [] %}
+{% set safe_props = [] %}
+{% for prop in raw_props %}
+    {% if prop.rw and prop.rw != 'w' %}
+        {% if 'password' not in prop.name and 'encrypted' not in prop.name and 'secret' not in prop.name %}
+            {% if safe_props.append(prop) %}{% endif %}
+        {% endif %}
+    {% endif %}
+{% endfor %}
+{% set rw_props = safe_props | rejectattr('rw', 'equalto', 'r') | rejectattr('name', 'equalto', 'on') | list %}
+{% set ro_props = safe_props | selectattr('rw', 'equalto', 'r') | list %}
 
 {% include "devices/components/breadcrumb.html" %}
 
-<div x-data="genericDevice()">
+<div x-data="genericDevice()" x-init="init()">
     {% include "devices/components/device_header.html" %}
 
     {% if device.is_camera and go2rtc_url %}
@@ -30,18 +40,13 @@
     </div>
     {% endif %}
 
-    {% if device.spec_data and device.spec_data.properties %}
-    {% set rw_props = device.spec_data.properties | rejectattr('rw', 'equalto', 'r') | selectattr('rw') | rejectattr('name', 'equalto', 'on') | list %}
-    {% set ro_props = device.spec_data.properties | selectattr('rw', 'equalto', 'r') | list %}
-
+    {% if safe_props %}
     {% if rw_props %}
     <div class="bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 p-5 sm:p-6 mb-4">
         <h2 class="font-heading font-semibold text-lg text-slate-900 dark:text-white mb-4">属性控制</h2>
         <div class="space-y-3">
             {% for prop in rw_props %}
-            <div class="rounded-lg border border-slate-200 dark:border-slate-700/50 p-4"
-                 x-data="{ value: null, loading: false }"
-                 x-init="getPropValue('{{ prop.name }}').then(v => { if (v !== null) value = v; }).catch(() => {})">
+            <div class="rounded-lg border border-slate-200 dark:border-slate-700/50 p-4">
                 <div class="flex items-center justify-between mb-3">
                     <div>
                         <span class="font-medium text-slate-900 dark:text-white text-sm">{{ prop.name }}</span>
@@ -49,18 +54,19 @@
                         <span class="text-slate-400 dark:text-slate-500 text-xs ml-2">{{ prop.description }}</span>
                         {% endif %}
                     </div>
-                    <span x-text="value !== null ? value : '-'" class="font-mono text-sm text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded"></span>
+                    <span x-text="props['{{ prop.name }}'] !== undefined && props['{{ prop.name }}'] !== null ? props['{{ prop.name }}'] : '-'"
+                          class="font-mono text-sm text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded"></span>
                 </div>
                 <div class="flex items-center gap-2">
                     {% if prop.type == 'bool' %}
                     <div class="w-[52px] h-[28px] rounded-full relative cursor-pointer transition-colors duration-300"
-                         :class="value ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'"
-                         @click="value = !value; setProp('{{ prop.name }}', value)">
+                         :class="props['{{ prop.name }}'] ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'"
+                         @click="props['{{ prop.name }}'] = !props['{{ prop.name }}']; setProp('{{ prop.name }}', props['{{ prop.name }}'])">
                         <div class="w-[22px] h-[22px] rounded-full bg-white absolute top-[3px] transition-all duration-300 shadow"
-                             :class="value ? 'left-[27px]' : 'left-[3px]'"></div>
+                             :class="props['{{ prop.name }}'] ? 'left-[27px]' : 'left-[3px]'"></div>
                     </div>
                     {% elif prop.value_list %}
-                    <select @change="value = $event.target.value; setProp('{{ prop.name }}', value)"
+                    <select @change="props['{{ prop.name }}'] = $event.target.value; setProp('{{ prop.name }}', props['{{ prop.name }}'])"
                             class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-white">
                         {% for item in prop.value_list %}
                         <option value="{{ item.value }}">{{ item.desc_zh_cn or item.description }}</option>
@@ -68,17 +74,17 @@
                     </select>
                     {% elif prop.type in ['int', 'uint', 'float'] and prop.range %}
                     <input type="range" min="{{ prop.range[0] }}" max="{{ prop.range[1] }}"
-                           x-model.number="value" @change="setProp('{{ prop.name }}', value)"
+                           x-model.number="props['{{ prop.name }}']" @change="setProp('{{ prop.name }}', props['{{ prop.name }}'])"
                            class="flex-1 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer
                                   [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5
                                   [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500
                                   [&::-webkit-slider-thumb]:cursor-pointer">
                     <span class="text-xs text-slate-400 shrink-0">{{ prop.range[0] }} - {{ prop.range[1] }} {{ prop.unit or '' }}</span>
                     {% elif prop.type in ['int', 'uint', 'float'] %}
-                    <input type="number" x-model.number="value"
-                           @keydown.enter="setProp('{{ prop.name }}', value)"
+                    <input type="number" x-model.number="props['{{ prop.name }}']"
+                           @keydown.enter="setProp('{{ prop.name }}', props['{{ prop.name }}'])"
                            class="w-24 px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-white">
-                    <button @click="setProp('{{ prop.name }}', value)"
+                    <button @click="setProp('{{ prop.name }}', props['{{ prop.name }}'])"
                             class="px-3 py-1.5 rounded-lg text-sm font-medium bg-blue-500 text-white hover:bg-blue-600 transition-colors">设置</button>
                     {% endif %}
                 </div>
@@ -93,10 +99,10 @@
         <h2 class="font-heading font-semibold text-lg text-slate-900 dark:text-white mb-4">状态信息</h2>
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {% for prop in ro_props %}
-            <div class="rounded-lg bg-slate-50 dark:bg-slate-700/50 p-3 text-center"
-                 x-data="{ value: '--' }" x-init="getPropValue('{{ prop.name }}').then(v => { if (v !== null) value = v; }).catch(() => {})">
+            <div class="rounded-lg bg-slate-50 dark:bg-slate-700/50 p-3 text-center">
                 <p class="text-xs text-slate-400 mb-1">{{ prop.name }}</p>
-                <p class="text-sm font-medium text-slate-700 dark:text-slate-200" x-text="value + '{{ ' ' + prop.unit if prop.unit else '' }}'"></p>
+                <p class="text-sm font-medium text-slate-700 dark:text-slate-200"
+                   x-text="(props['{{ prop.name }}'] !== undefined && props['{{ prop.name }}'] !== null ? props['{{ prop.name }}'] : '--'){% if prop.unit %} + ' {{ prop.unit }}'{% endif %}"></p>
             </div>
             {% endfor %}
         </div>
@@ -134,8 +140,22 @@
 function genericDevice() {
     return {
         on: false, loading: false,
-        init() {
-            getPropValue('on').then(v => { if (v !== null) this.on = v; }).catch(() => {});
+        props: {},
+
+        async init() {
+            const names = ['on', {% for p in safe_props %}'{{ p.name }}',{% endfor %}];
+            const unique = [...new Set(names)];
+            try {
+                const results = await getPropValues(unique);
+                for (const [name, data] of Object.entries(results)) {
+                    if (data.value !== undefined && data.error === undefined) {
+                        this.props[name] = data.value;
+                        if (name === 'on') this.on = data.value;
+                    }
+                }
+            } catch (e) {
+                getPropValue('on').then(v => { if (v !== null) this.on = v; }).catch(() => {});
+            }
         }
     }
 }
@@ -145,6 +165,7 @@ function onDeviceUpdate(propName, value) {
     if (!el) return;
     const d = Alpine.$data(el);
     if (propName === 'on') d.on = value;
+    d.props[propName] = value;
 }
 </script>
 {% endblock %}

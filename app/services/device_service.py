@@ -1,4 +1,4 @@
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from datetime import datetime, timezone
 
@@ -148,6 +148,31 @@ class DeviceService:
             "value": value,
             "unit": prop_info.unit if prop_info else None,
         }
+
+    @staticmethod
+    def get_properties_batch(user_id: int, did: str, prop_names: list[str], timeout_per_prop: int = 8) -> dict:
+        """批量获取设备属性值，每个属性独立处理错误"""
+        api = api_pool.get_api(user_id)
+        device = mijiaDevice(api, did=did)
+        results = {}
+
+        def fetch_one(name):
+            try:
+                value = _call_with_timeout(device.get, name, timeout=timeout_per_prop)
+                return name, {"value": value}
+            except Exception as e:
+                return name, {"error": str(e)}
+
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            futures = [pool.submit(fetch_one, name) for name in prop_names]
+            for future in as_completed(futures, timeout=30):
+                try:
+                    name, result = future.result()
+                    results[name] = result
+                except Exception:
+                    pass
+
+        return results
 
     @staticmethod
     def set_property(user_id: int, did: str, prop_name: str, value, timeout=MIJIA_CALL_TIMEOUT) -> dict:

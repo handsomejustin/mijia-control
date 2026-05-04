@@ -2,11 +2,19 @@
 {% block title %}{{ device.name }} - 米家控制{% endblock %}
 
 {% block content %}
-{% set props = device.spec_data.properties | map(attribute='name') | list if device.spec_data and device.spec_data.properties else [] %}
+{% set raw_props = device.spec_data.properties if device.spec_data and device.spec_data.properties else [] %}
+{% set writable_props = [] %}
+{% for prop in raw_props %}
+    {% if prop.rw and prop.rw != 'r' and prop.name != 'on' %}
+        {% if 'password' not in prop.name and 'encrypted' not in prop.name and 'secret' not in prop.name %}
+            {% if writable_props.append(prop) %}{% endif %}
+        {% endif %}
+    {% endif %}
+{% endfor %}
 
 {% include "devices/components/breadcrumb.html" %}
 
-<div x-data="cameraPage()">
+<div x-data="cameraPage()" x-init="init()">
     {% include "devices/components/device_header.html" %}
 
     {% if device.is_camera and go2rtc_url %}
@@ -32,30 +40,30 @@
     </div>
     {% endif %}
 
-    {% if device.spec_data and device.spec_data.properties %}
+    {% if writable_props %}
     <div class="bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 p-5 sm:p-6 mb-6">
         <h2 class="font-heading font-semibold text-lg text-slate-900 dark:text-white mb-4">属性控制</h2>
         <div class="space-y-3">
-            {% for prop in device.spec_data.properties %}
-            {% if prop.rw and 'w' in prop.rw and prop.name != 'on' %}
-            <div class="rounded-lg border border-slate-200 dark:border-slate-700/50 p-4" x-data="{ value: null, loading: false }" data-prop-block="{{ prop.name }}">
+            {% for prop in writable_props %}
+            <div class="rounded-lg border border-slate-200 dark:border-slate-700/50 p-4" data-prop-block="{{ prop.name }}">
                 <div class="flex items-center justify-between mb-3">
                     <div>
                         <span class="font-medium text-slate-900 dark:text-white text-sm">{{ prop.name }}</span>
                         <span class="text-slate-400 dark:text-slate-500 text-xs ml-2">{{ prop.description }}</span>
                     </div>
-                    <span x-text="value !== null ? value : '-'" class="font-mono text-sm text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded"></span>
+                    <span x-text="props['{{ prop.name }}'] !== undefined && props['{{ prop.name }}'] !== null ? props['{{ prop.name }}'] : '-'"
+                          class="font-mono text-sm text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded"></span>
                 </div>
                 <div class="flex items-center gap-2">
                     {% if prop.type == 'bool' %}
                     <div class="w-[52px] h-[28px] rounded-full relative cursor-pointer transition-colors duration-300"
-                         :class="value ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'"
-                         @click="value = !value; setProp('{{ prop.name }}', value)">
+                         :class="props['{{ prop.name }}'] ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'"
+                         @click="props['{{ prop.name }}'] = !props['{{ prop.name }}']; setProp('{{ prop.name }}', props['{{ prop.name }}'])">
                         <div class="w-[22px] h-[22px] rounded-full bg-white absolute top-[3px] transition-all duration-300 shadow"
-                             :class="value ? 'left-[27px]' : 'left-[3px]'"></div>
+                             :class="props['{{ prop.name }}'] ? 'left-[27px]' : 'left-[3px]'"></div>
                     </div>
                     {% elif prop.value_list %}
-                    <select @change="value = $event.target.value; setProp('{{ prop.name }}', value)"
+                    <select @change="props['{{ prop.name }}'] = $event.target.value; setProp('{{ prop.name }}', props['{{ prop.name }}'])"
                             class="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-white">
                         {% for item in prop.value_list %}
                         <option value="{{ item.value }}">{{ item.desc_zh_cn or item.description }}</option>
@@ -63,7 +71,7 @@
                     </select>
                     {% elif prop.type in ['int', 'uint', 'float'] and prop.range %}
                     <input type="range" min="{{ prop.range[0] }}" max="{{ prop.range[1] }}"
-                           x-model.number="value" @change="setProp('{{ prop.name }}', value)"
+                           x-model.number="props['{{ prop.name }}']" @change="setProp('{{ prop.name }}', props['{{ prop.name }}'])"
                            class="flex-1 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer
                                   [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5
                                   [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500
@@ -72,7 +80,6 @@
                     {% endif %}
                 </div>
             </div>
-            {% endif %}
             {% endfor %}
         </div>
     </div>
@@ -86,8 +93,22 @@
 function cameraPage() {
     return {
         on: false, loading: false,
-        init() {
-            getPropValue('on').then(v => { if (v !== null) this.on = v; }).catch(() => {});
+        props: {},
+
+        async init() {
+            const names = ['on', {% for p in writable_props %}'{{ p.name }}',{% endfor %}];
+            const unique = [...new Set(names)];
+            try {
+                const results = await getPropValues(unique);
+                for (const [name, data] of Object.entries(results)) {
+                    if (data.value !== undefined && data.error === undefined) {
+                        this.props[name] = data.value;
+                        if (name === 'on') this.on = data.value;
+                    }
+                }
+            } catch (e) {
+                getPropValue('on').then(v => { if (v !== null) this.on = v; }).catch(() => {});
+            }
         }
     }
 }
@@ -97,6 +118,7 @@ function onDeviceUpdate(propName, value) {
     if (!el) return;
     const d = Alpine.$data(el);
     if (propName === 'on') d.on = value;
+    d.props[propName] = value;
 }
 </script>
 {% endblock %}

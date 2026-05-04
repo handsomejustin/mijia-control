@@ -111,6 +111,39 @@ def get_device(did):
         return error(str(e), 500)
 
 
+@devices_ns.route("/<did>/props/batch", methods=["POST"])
+@auth_required
+@limiter.limit("30 per minute")
+def get_properties_batch(did):
+    """批量读取设备属性值
+    ---
+    tags:
+      - 设备
+    security:
+      - cookieAuth: []
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: did
+        type: string
+        required: true
+    responses:
+      200:
+        description: 批量属性值
+    """
+    data = request.get_json(silent=True) or {}
+    prop_names = data.get("properties", [])
+    if not prop_names or not isinstance(prop_names, list):
+        return error("properties 必须为非空数组", 400)
+    if len(prop_names) > 50:
+        return error("单次最多查询 50 个属性", 400)
+    try:
+        result = DeviceService.get_properties_batch(get_current_user_id(), did, prop_names)
+        return success(result)
+    except Exception as e:
+        return error(str(e), 500)
+
+
 @devices_ns.route("/<did>/stream-info", methods=["GET"])
 @auth_required
 @limiter.limit("30 per minute")

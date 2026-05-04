@@ -35,6 +35,20 @@ function getPropValue(propName) {
         });
 }
 
+function getPropValues(propNames) {
+    if (!propNames.length) return Promise.resolve({});
+    return fetch(`/api/devices/${E}/props/batch`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({properties: propNames})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) return data.data;
+        throw new Error(data.message);
+    });
+}
+
 function setProp(propName, value) {
     return fetch(`/api/devices/${E}/props/${propName}`, {
         method: 'PUT',
