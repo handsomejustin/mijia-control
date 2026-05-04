@@ -131,6 +131,7 @@
 {% block scripts %}
 <script>
 const DID = '{{ device.did }}';
+const E = encodeURIComponent(DID);
 const GO2RTC_URL = '{{ go2rtc_url }}';
 
 document.addEventListener('mijia-device-update', (event) => {
@@ -161,7 +162,7 @@ if (window._mijiaSocket) {
 function getProp(propName) {
     const block = document.querySelector(`[data-prop-block="${propName}"]`);
     if (block) Alpine.$data(block).loading = true;
-    fetch(`/api/devices/${DID}/props/${propName}`)
+    fetch(`/api/devices/${E}/props/${propName}`)
         .then(r => r.json())
         .then(data => {
             if (data.success) {
@@ -178,7 +179,7 @@ function getProp(propName) {
 function setProp(propName, value) {
     const block = document.querySelector(`[data-prop-block="${propName}"]`);
     if (block) Alpine.$data(block).loading = true;
-    fetch(`/api/devices/${DID}/props/${propName}`, {
+    fetch(`/api/devices/${E}/props/${propName}`, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({value: value})
@@ -192,7 +193,7 @@ function setProp(propName, value) {
 }
 
 function toggleProp(propName) {
-    fetch(`/api/devices/${DID}/props/${propName}`)
+    fetch(`/api/devices/${E}/props/${propName}`)
         .then(r => r.json())
         .then(data => {
             if (data.success) setProp(propName, !data.data.value);
@@ -200,7 +201,7 @@ function toggleProp(propName) {
 }
 
 function runAction(actionName) {
-    fetch(`/api/devices/${DID}/actions/${actionName}`, {
+    fetch(`/api/devices/${E}/actions/${actionName}`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'}
     })

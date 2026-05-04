@@ -1,4 +1,5 @@
 import logging
+from urllib.parse import quote
 
 import httpx
 from pyhap import const as hap_const
@@ -60,6 +61,7 @@ class _MijiaAccessory(Accessory):
         self._api_url = api_url
         self._token = token
         self._did = did
+        self._did_path = quote(did)
 
     def _api_get(self, path: str) -> dict | None:
         try:
@@ -138,21 +140,21 @@ class MijiaLight(_MijiaAccessory):
     def _set_chars(self, char_values):
         if "On" in char_values:
             self._api_put(
-                f"/devices/{self._did}/props/{self._power_prop}",
+                f"/devices/{self._did_path}/props/{self._power_prop}",
                 _power_value(self._spec_data, self._power_prop, char_values["On"]),
             )
         if "Brightness" in char_values:
-            self._api_put(f"/devices/{self._did}/props/{self._brightness_prop}", char_values["Brightness"])
+            self._api_put(f"/devices/{self._did_path}/props/{self._brightness_prop}", char_values["Brightness"])
         if "ColorTemperature" in char_values and self._has_colortemp:
-            self._api_put(f"/devices/{self._did}/props/{self._colortemp_prop}", char_values["ColorTemperature"])
+            self._api_put(f"/devices/{self._did_path}/props/{self._colortemp_prop}", char_values["ColorTemperature"])
 
     @Accessory.run_at_interval(_POLL_INTERVAL)
     def run(self):
-        result = self._api_get(f"/devices/{self._did}/props/{self._power_prop}")
+        result = self._api_get(f"/devices/{self._did_path}/props/{self._power_prop}")
         if result and result.get("value") is not None:
             self.char_on.set_value(_is_power_on(self._spec_data, self._power_prop, result["value"]))
 
-        result = self._api_get(f"/devices/{self._did}/props/{self._brightness_prop}")
+        result = self._api_get(f"/devices/{self._did_path}/props/{self._brightness_prop}")
         if result and result.get("value") is not None:
             self.char_brightness.set_value(int(result["value"]))
 
@@ -175,13 +177,13 @@ class MijiaOutlet(_MijiaAccessory):
     def _set_chars(self, char_values):
         if "On" in char_values:
             self._api_put(
-                f"/devices/{self._did}/props/{self._power_prop}",
+                f"/devices/{self._did_path}/props/{self._power_prop}",
                 _power_value(self._spec_data, self._power_prop, char_values["On"]),
             )
 
     @Accessory.run_at_interval(_POLL_INTERVAL)
     def run(self):
-        result = self._api_get(f"/devices/{self._did}/props/{self._power_prop}")
+        result = self._api_get(f"/devices/{self._did_path}/props/{self._power_prop}")
         if result and result.get("value") is not None:
             is_on = _is_power_on(self._spec_data, self._power_prop, result["value"])
             self.char_on.set_value(is_on)
@@ -205,13 +207,13 @@ class MijiaSwitch(_MijiaAccessory):
     def _set_chars(self, char_values):
         if "On" in char_values:
             self._api_put(
-                f"/devices/{self._did}/props/{self._power_prop}",
+                f"/devices/{self._did_path}/props/{self._power_prop}",
                 _power_value(self._spec_data, self._power_prop, char_values["On"]),
             )
 
     @Accessory.run_at_interval(_POLL_INTERVAL)
     def run(self):
-        result = self._api_get(f"/devices/{self._did}/props/{self._power_prop}")
+        result = self._api_get(f"/devices/{self._did_path}/props/{self._power_prop}")
         if result and result.get("value") is not None:
             self.char_on.set_value(_is_power_on(self._spec_data, self._power_prop, result["value"]))
 
@@ -237,12 +239,12 @@ class MijiaTemperatureSensor(_MijiaAccessory):
 
     @Accessory.run_at_interval(_POLL_INTERVAL)
     def run(self):
-        result = self._api_get(f"/devices/{self._did}/props/{self._temp_prop}")
+        result = self._api_get(f"/devices/{self._did_path}/props/{self._temp_prop}")
         if result and result.get("value") is not None:
             self.char_temp.set_value(float(result["value"]))
 
         if self.char_humidity and self._humidity_prop:
-            result = self._api_get(f"/devices/{self._did}/props/{self._humidity_prop}")
+            result = self._api_get(f"/devices/{self._did_path}/props/{self._humidity_prop}")
             if result and result.get("value") is not None:
                 self.char_humidity.set_value(float(result["value"]))
 
@@ -268,16 +270,16 @@ class MijiaThermostat(_MijiaAccessory):
 
     def _set_chars(self, char_values):
         if "TargetTemperature" in char_values:
-            self._api_put(f"/devices/{self._did}/props/{self._target_temp_prop}", char_values["TargetTemperature"])
+            self._api_put(f"/devices/{self._did_path}/props/{self._target_temp_prop}", char_values["TargetTemperature"])
         if "TargetHeatingCoolingState" in char_values:
             self._api_put(
-                f"/devices/{self._did}/props/{self._power_prop}",
+                f"/devices/{self._did_path}/props/{self._power_prop}",
                 _power_value(self._spec_data, self._power_prop, char_values["TargetHeatingCoolingState"] != 0),
             )
 
     @Accessory.run_at_interval(_POLL_INTERVAL)
     def run(self):
-        result = self._api_get(f"/devices/{self._did}/props/{self._power_prop}")
+        result = self._api_get(f"/devices/{self._did_path}/props/{self._power_prop}")
         if result and result.get("value") is not None:
             is_on = _is_power_on(self._spec_data, self._power_prop, result["value"])
             self.char_current_state.set_value(1 if is_on else 0)
@@ -306,22 +308,22 @@ class MijiaHeater(_MijiaAccessory):
     def _set_chars(self, char_values):
         if "Active" in char_values:
             self._api_put(
-                f"/devices/{self._did}/props/{self._power_prop}",
+                f"/devices/{self._did_path}/props/{self._power_prop}",
                 _power_value(self._spec_data, self._power_prop, char_values["Active"]),
             )
         if "HeatingThresholdTemperature" in char_values:
             self._api_put(
-                f"/devices/{self._did}/props/{self._target_temp_prop}",
+                f"/devices/{self._did_path}/props/{self._target_temp_prop}",
                 char_values["HeatingThresholdTemperature"],
             )
 
     @Accessory.run_at_interval(_POLL_INTERVAL)
     def run(self):
-        result = self._api_get(f"/devices/{self._did}/props/{self._curr_temp_prop}")
+        result = self._api_get(f"/devices/{self._did_path}/props/{self._curr_temp_prop}")
         if result and result.get("value") is not None:
             self.char_current_temp.set_value(float(result["value"]))
 
-        result = self._api_get(f"/devices/{self._did}/props/{self._power_prop}")
+        result = self._api_get(f"/devices/{self._did_path}/props/{self._power_prop}")
         if result and result.get("value") is not None:
             self.char_active.set_value(1 if _is_power_on(self._spec_data, self._power_prop, result["value"]) else 0)
 

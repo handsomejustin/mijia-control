@@ -1,6 +1,7 @@
 import logging
 import os
 import signal
+from urllib.parse import quote
 
 import httpx
 from dotenv import load_dotenv
@@ -70,7 +71,7 @@ def _fetch_device_detail(api_url: str, token: str, did: str) -> dict | None:
     """从 Flask API 获取设备详情（包含 spec_data）。"""
     try:
         resp = httpx.get(
-            f"{api_url}/devices/{did}",
+            f"{api_url}/devices/{quote(did)}",
             headers={"Authorization": f"Bearer {token}"},
             timeout=15,
         )

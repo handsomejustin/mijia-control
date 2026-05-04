@@ -1,4 +1,5 @@
 import os
+from urllib.parse import quote
 
 import httpx
 from mcp.server.fastmcp import FastMCP
@@ -51,7 +52,7 @@ async def get_device(did: str) -> dict:
     Args:
         did: 设备ID
     """
-    return await _request("GET", f"/devices/{did}")
+    return await _request("GET", f"/devices/{quote(did)}")
 
 
 # ── 设备属性读写 ──
@@ -65,7 +66,7 @@ async def get_property(did: str, prop_name: str) -> dict:
         did: 设备ID
         prop_name: 属性名称，如 power、brightness、temperature
     """
-    return await _request("GET", f"/devices/{did}/props/{prop_name}")
+    return await _request("GET", f"/devices/{quote(did)}/props/{prop_name}")
 
 
 @mcp.tool()
@@ -77,7 +78,7 @@ async def set_property(did: str, prop_name: str, value) -> dict:
         prop_name: 属性名称，如 power、brightness、temperature
         value: 属性值，类型取决于属性定义。常见值：power 为 "on"/"off"，brightness 为 0-100，temperature 为数字
     """
-    return await _request("PUT", f"/devices/{did}/props/{prop_name}", json_data={"value": value})
+    return await _request("PUT", f"/devices/{quote(did)}/props/{prop_name}", json_data={"value": value})
 
 
 # ── 设备动作 ──
@@ -93,7 +94,7 @@ async def run_action(did: str, action_name: str, value: dict | None = None) -> d
         value: 动作参数，可选
     """
     body = {"value": value} if value is not None else {}
-    return await _request("POST", f"/devices/{did}/actions/{action_name}", json_data=body)
+    return await _request("POST", f"/devices/{quote(did)}/actions/{action_name}", json_data=body)
 
 
 # ── 场景管理 ──
@@ -167,7 +168,7 @@ async def get_ble_sensor(did: str) -> dict:
     Args:
         did: BLE 设备ID，如 blt.3.xxxxx
     """
-    return await _request("GET", f"/ble/devices/{did}")
+    return await _request("GET", f"/ble/devices/{quote(did)}")
 
 
 @mcp.tool()
@@ -179,4 +180,4 @@ async def get_ble_readings(did: str, hours: int = 24, limit: int = 100) -> dict:
         hours: 查询最近多少小时的数据，默认 24
         limit: 最大返回条数，默认 100
     """
-    return await _request("GET", f"/ble/devices/{did}/readings", params={"hours": hours, "limit": limit})
+    return await _request("GET", f"/ble/devices/{quote(did)}/readings", params={"hours": hours, "limit": limit})

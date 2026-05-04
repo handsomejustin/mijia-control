@@ -92,6 +92,7 @@
 {% block scripts %}
 <script>
 const DID = '{{ device.did }}';
+const E = encodeURIComponent(DID);
 let currentProp = '{{ energy_props[0] if energy_props else "" }}';
 let currentRange = 'daily';
 let currentDays = 7;
@@ -100,7 +101,7 @@ let chart = null;
 function savePower() {
     this.saving = true;
     this.msg = '';
-    fetch(`/api/devices/${DID}/rated_power`, {
+    fetch(`/api/devices/${E}/rated_power`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rated_power: this.power })
@@ -117,7 +118,7 @@ function savePower() {
 function clearPower() {
     this.saving = true;
     this.msg = '';
-    fetch(`/api/devices/${DID}/rated_power`, {
+    fetch(`/api/devices/${E}/rated_power`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rated_power: null })
@@ -153,15 +154,15 @@ function setRange(range, val) {
 
 function fetchData() {
     const url = currentRange === 'hourly'
-        ? `/api/energy/${DID}/hourly?hours=${currentDays}`
-        : `/api/energy/${DID}/daily?days=${currentDays}`;
+        ? `/api/energy/${E}/hourly?hours=${currentDays}`
+        : `/api/energy/${E}/daily?days=${currentDays}`;
     fetch(url).then(r => r.json()).then(data => {
         if (data.success) renderChart(data.data);
     });
 }
 
 function fetchLatest(prop) {
-    fetch(`/api/energy/${DID}/latest?prop_name=${prop}&limit=20`).then(r => r.json()).then(data => {
+    fetch(`/api/energy/${E}/latest?prop_name=${prop}&limit=20`).then(r => r.json()).then(data => {
         if (!data.success) return;
         const el = document.getElementById('latest-data');
         if (!data.data.length) { el.innerHTML = '<p class="text-sm text-slate-400">暂无数据</p>'; return; }
