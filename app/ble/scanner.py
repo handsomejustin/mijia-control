@@ -7,7 +7,9 @@ import httpx
 from app.ble.config import (
     BLE_ADAPTER,
     MIJIA_API_URL,
+    MIJIA_PASSWORD,
     MIJIA_TOKEN,
+    MIJIA_USERNAME,
     XIAOMI_MANUFACTURER_ID,
 )
 from app.ble.parser import decrypt_payload, get_parser
@@ -137,6 +139,30 @@ async def scan_loop(api_url: str, token: str, adapter: str = ""):
                 logger.debug("已上报 %s: %s", target.did, values)
 
 
+def _login(api_url: str, username: str, password: str) -> str | None:
+    try:
+        resp = httpx.post(
+            f"{api_url}/auth/jwt/login",
+            json={"username": username, "password": password},
+            timeout=30,
+        )
+        if resp.status_code != 200:
+            logger.warning("登录失败 (HTTP %d)", resp.status_code)
+            return None
+        data = resp.json()
+        if not data.get("success"):
+            logger.warning("登录失败: %s", data.get("message") or data.get("msg"))
+            return None
+        token = data.get("data", {}).get("access_token")
+        if not token:
+            logger.warning("登录成功但未获取到 access_token")
+            return None
+        return token
+    except Exception as e:
+        logger.error("登录请求失败: %s", e)
+        return None
+
+
 async def run_scanner():
     from bleak import BleakScanner
 
@@ -150,8 +176,16 @@ async def run_scanner():
     api_url = MIJIA_API_URL
     token = MIJIA_TOKEN
 
-    if not token:
-        logger.error("未设置 MIJIA_TOKEN 环境变量")
+    if not token and MIJIA_USERNAME and MIJIA_PASSWORD:
+        logger.info("未设置 MIJIA_TOKEN，尝试使用用户名密码自动登录...")
+        token = _login(api_url, MIJIA_USERNAME, MIJIA_PASSWORD)
+        if token:
+            logger.info("自动登录成功")
+        else:
+            logger.error("自动登录失败，请检查 MIJIA_USERNAME 和 MIJIA_PASSWORD")
+            return
+    elif not token:
+        logger.error("未设置 MIJIA_TOKEN，请设置 MIJIA_TOKEN 或同时设置 MIJIA_USERNAME 和 MIJIA_PASSWORD")
         return
 
     logger.info("BLE Scanner 启动 (API=%s)", api_url)
