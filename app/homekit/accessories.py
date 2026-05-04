@@ -8,7 +8,7 @@ from app.homekit.mapper import DeviceCategory
 
 logger = logging.getLogger(__name__)
 
-_POLL_INTERVAL = 10  # seconds between state polls
+_POLL_INTERVAL = 120  # seconds between state polls
 
 # 属性名候选列表（按优先级排序，用于自动发现）
 _POWER_PROPS = ["on", "power", "switch"]
