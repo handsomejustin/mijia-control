@@ -3,6 +3,7 @@ from flask import Response, current_app, flash, redirect, render_template, reque
 from flask_login import current_user, login_required, login_user, logout_user
 from flask_wtf.csrf import validate_csrf
 
+from app.homekit.mapper import map_device
 from app.services.auth_service import AuthService
 from app.services.automation_service import AutomationService
 from app.services.device_group_service import DeviceGroupService
@@ -167,10 +168,22 @@ def register_routes(bp):
             flash(f"获取设备信息失败: {e}", "error")
             return redirect(url_for("web.devices"))
 
-        # 查找设备所属的家庭和房间，用于面包屑导航
         breadcrumb = _device_breadcrumb(current_user.id, device)
+
+        category = map_device(device)
+        template_map = {
+            "dehumidifier": "devices/control_dehumidifier.html",
+            "light": "devices/control_light.html",
+            "heater": "devices/control_heater.html",
+            "thermostat": "devices/control_thermostat.html",
+            "temperature_sensor": "devices/control_sensor.html",
+            "switch": "devices/control_switch.html",
+            "camera": "devices/control_camera.html",
+        }
+        template = template_map.get(category, "devices/control.html")
+
         return render_template(
-            "devices/control.html", device=device, go2rtc_url=current_app.config.get("GO2RTC_URL", ""),
+            template, device=device, go2rtc_url=current_app.config.get("GO2RTC_URL", ""),
             breadcrumb=breadcrumb,
         )
 
