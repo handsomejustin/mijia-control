@@ -11,8 +11,7 @@
             </p>
         </div>
         {% if has_on_prop %}
-        <div x-data="{ on: false, loading: false }" x-init="getPropValue('on').then(v => on = v)"
-             class="w-16 h-16 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 shrink-0"
+        <div class="w-16 h-16 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 shrink-0"
              :class="on ? 'bg-blue-500 shadow-[0_0_0_8px_rgba(59,130,246,0.15),0_4px_12px_rgba(59,130,246,0.3)]' : 'bg-slate-200 dark:bg-slate-700'"
              :disabled="loading"
              @click="on = !on; setProp('on', on)">
