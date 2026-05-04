@@ -11,7 +11,7 @@
 [![GitHub issues](https://img.shields.io/github/issues/handsomejustin/mijia-control)](https://github.com/handsomejustin/mijia-control/issues)
 [![GitHub last commit](https://img.shields.io/github/last-commit/handsomejustin/mijia-control)](https://github.com/handsomejustin/mijia-control)
 
-米家 × MCP × AI Agent × HomeKit 全桥接智能家居平台。
+米家 小米生态 × MCP x CLI × AI Agent × HomeKit 全桥接智能家居平台。
 
 > **致谢**：本项目底层使用了 [Do1e/mijia-api](https://github.com/Do1e/mijia-api)（mijiaAPI v3.0+）提供的 Python SDK，
 > 用于与小米云端进行设备通信、属性读写和场景执行。感谢原作者的开源贡献。
