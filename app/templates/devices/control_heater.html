@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}{{ device.name }} - 米家控制{% endblock %}
+
+{% block content %}
+{% set props = device.spec_data.properties | map(attribute='name') | list %}
+{% set has_target_temp = 'target-temperature' in props %}
+{% set has_temp = 'temperature' in props or 'environment-temperature' in props %}
+{% set has_humidity = 'relative-humidity' in props %}
+{% set has_mode = 'mode' in props %}
+{% set has_countdown = 'countdown-time' in props %}
+{% set has_child_lock = 'physical-controls-locked' in props %}
+{% set has_brightness = 'brightness' in props %}
+{% set has_swing = 'vertical-swing' in props %}
+
+{% if has_target_temp %}
+{% set target_prop = device.spec_data.properties | selectattr('name', 'equalto', 'target-temperature') | first %}
+{% endif %}
+{% if has_mode %}
+{% set mode_prop = device.spec_data.properties | selectattr('name', 'equalto', 'mode') | first %}
+{% endif %}
+{% if has_countdown %}
+{% set countdown_prop = device.spec_data.properties | selectattr('name', 'equalto', 'countdown-time') | first %}
+{% endif %}
+
+{% include "devices/components/breadcrumb.html" %}
+
+<div x-data="heaterControl()">
+    {% include "devices/components/device_header.html" %}
+
+    <div :class="!on && 'opacity-40 pointer-events-none'" class="transition-opacity duration-300">
+
+        {% if has_temp or has_target_temp %}
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            {% if has_temp %}
+            <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 text-center">
+                <p class="text-xs text-slate-400 dark:text-slate-500 mb-1">当前温度</p>
+                <div class="flex items-end justify-center gap-0.5">
+                    <span class="text-[3.5rem] leading-none font-extralight tracking-tight text-slate-700 dark:text-slate-200" x-text="currentTemp"></span>
+                    <span class="text-lg text-slate-300 mb-2">°C</span>
+                </div>
+                {% if has_humidity %}
+                <p class="text-xs text-slate-400 mt-1">湿度: <span x-text="humidity"></span>%</p>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% if has_target_temp %}
+            <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 text-center">
+                <p class="text-xs text-slate-400 dark:text-slate-500 mb-1">目标温度</p>
+                <div class="flex items-end justify-center gap-0.5">
+                    <span class="text-[3.5rem] leading-none font-extralight tracking-tight text-orange-500" x-text="targetTemp"></span>
+                    <span class="text-lg text-slate-300 mb-2">°C</span>
+                </div>
+                <p class="text-xs text-slate-300 mt-1">&nbsp;</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if has_target_temp %}
+        <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700/50 mb-4">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200">温度调节</h3>
+                <span class="text-sm font-bold text-orange-500" x-text="targetTemp + '°C'"></span>
+            </div>
+            <input type="range" min="{{ target_prop.range[0] }}" max="{{ target_prop.range[1] }}" step="{{ target_prop.range[2] if target_prop.range|length > 2 else 1 }}"
+                   x-model.number="targetTemp"
+                   @change="setProp('target-temperature', targetTemp)"
+                   class="w-full h-2 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer
+                          [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6
+                          [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-orange-500 [&::-webkit-slider-thumb]:shadow-md
+                          [&::-webkit-slider-thumb]:cursor-pointer">
+            <div class="flex justify-between mt-2 text-xs text-slate-300">
+                <span>{{ target_prop.range[0] }}°C</span>
+                <span>{{ target_prop.range[1] }}°C</span>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            {% if has_mode %}
+            <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50">
+                <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">模式</h3>
+                {% if mode_prop.value_list %}
+                <div class="flex rounded-xl overflow-hidden border border-slate-200 dark:border-slate-600">
+                    {% for item in mode_prop.value_list %}
+                    <button class="flex-1 py-2 text-sm font-medium transition-all duration-200"
+                            :class="mode === {{ item.value }} ? 'bg-orange-500 text-white shadow-sm' : 'bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400'"
+                            @click="mode = {{ item.value }}; setProp('mode', {{ item.value }})">
+                        {{ item.desc_zh_cn or item.description }}
+                    </button>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="flex rounded-xl overflow-hidden border border-slate-200 dark:border-slate-600">
+                    <button class="flex-1 py-2 text-sm font-medium transition-all duration-200"
+                            :class="mode === 0 ? 'bg-orange-500 text-white shadow-sm' : 'bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400'"
+                            @click="mode = 0; setProp('mode', 0)">自动</button>
+                    <button class="flex-1 py-2 text-sm font-medium transition-all duration-200"
+                            :class="mode === 1 ? 'bg-orange-500 text-white shadow-sm' : 'bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400'"
+                            @click="mode = 1; setProp('mode', 1)">手动</button>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% if has_countdown %}
+            <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50">
+                <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">定时关机</h3>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-slate-500" x-text="countdown > 0 ? Math.floor(countdown / 60) + '小时' + (countdown % 60 > 0 ? countdown % 60 + '分' : '') : '未设定'"></span>
+                    <button class="px-3 py-1.5 rounded-lg text-xs font-medium bg-orange-500 text-white hover:bg-orange-600 transition-colors"
+                            @click="setProp('countdown-time', 0); countdown = 0">清除</button>
+                </div>
+            </div>
+            {% elif not has_mode %}
+            <div></div>
+            {% endif %}
+        </div>
+
+        {% if has_swing or has_child_lock %}
+        <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 flex items-center justify-between{% if has_swing %} mb-4{% endif %}">
+            {% if has_swing %}
+            <div class="flex items-center justify-between w-full">
+                <div>
+                    <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200">摆风</h3>
+                </div>
+                <div class="w-[52px] h-[28px] rounded-full relative cursor-pointer transition-colors duration-300"
+                     :class="swing ? 'bg-orange-500' : 'bg-slate-300 dark:bg-slate-600'"
+                     @click="swing = !swing; setProp('vertical-swing', swing)">
+                    <div class="w-[22px] h-[22px] rounded-full bg-white absolute top-[3px] transition-all duration-300 shadow"
+                         :class="swing ? 'left-[27px]' : 'left-[3px]'"></div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if has_child_lock %}
+        <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 flex items-center justify-between">
+            <div>
+                <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200">童锁</h3>
+                <p class="text-xs text-slate-400 dark:text-slate-500">锁定设备物理按键</p>
+            </div>
+            <div class="w-[52px] h-[28px] rounded-full relative cursor-pointer transition-colors duration-300"
+                 :class="childLock ? 'bg-orange-500' : 'bg-slate-300 dark:bg-slate-600'"
+                 @click="childLock = !childLock; setProp('physical-controls-locked', childLock)">
+                <div class="w-[22px] h-[22px] rounded-full bg-white absolute top-[3px] transition-all duration-300 shadow"
+                     :class="childLock ? 'left-[27px]' : 'left-[3px]'"></div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% include "devices/components/device_js.html" %}
+<script>
+function heaterControl() {
+    return {
+        on: false, loading: false,
+        currentTemp: '--', targetTemp: 22, humidity: '--',
+        mode: 0, countdown: 0,
+        swing: false, childLock: false,
+
+        init() {
+            const load = (name, setter) => getPropValue(name).then(v => { if (v !== null) setter(v); }).catch(() => {});
+            load('on', v => this.on = v);
+            {% if has_temp %}
+            {% if 'temperature' in props %}
+            load('temperature', v => this.currentTemp = v);
+            {% elif 'environment-temperature' in props %}
+            load('environment-temperature', v => this.currentTemp = v);
+            {% endif %}
+            {% endif %}
+            {% if has_target_temp %}load('target-temperature', v => this.targetTemp = v);{% endif %}
+            {% if has_humidity %}load('relative-humidity', v => this.humidity = v);{% endif %}
+            {% if has_mode %}load('mode', v => this.mode = v);{% endif %}
+            {% if has_countdown %}load('countdown-time', v => this.countdown = v);{% endif %}
+            {% if has_swing %}load('vertical-swing', v => this.swing = v);{% endif %}
+            {% if has_child_lock %}load('physical-controls-locked', v => this.childLock = v);{% endif %}
+        }
+    }
+}
+
+function onDeviceUpdate(propName, value) {
+    const el = document.querySelector('[x-data="heaterControl()"]');
+    if (!el) return;
+    const d = Alpine.$data(el);
+    switch (propName) {
+        case 'on': d.on = value; break;
+        case 'temperature': case 'environment-temperature': d.currentTemp = value; break;
+        case 'target-temperature': d.targetTemp = value; break;
+        case 'relative-humidity': d.humidity = value; break;
+        case 'mode': d.mode = value; break;
+        case 'countdown-time': d.countdown = value; break;
+        case 'vertical-swing': d.swing = value; break;
+        case 'physical-controls-locked': d.childLock = value; break;
+    }
+}
+</script>
+{% endblock %}

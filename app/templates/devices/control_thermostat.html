@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}{{ device.name }} - 米家控制{% endblock %}
+
+{% block content %}
+{% set props = device.spec_data.properties | map(attribute='name') | list %}
+{% set has_target_temp = 'target-temperature' in props %}
+{% set has_temp = 'temperature' in props %}
+{% set has_humidity = 'relative-humidity' in props %}
+{% set has_mode = 'mode' in props %}
+{% set has_fan_level = 'fan-level' in props %}
+{% set has_swing = 'vertical-swing' in props %}
+{% set has_indicator = 'indicator-light-on' in props %}
+
+{% if has_target_temp %}
+{% set target_prop = device.spec_data.properties | selectattr('name', 'equalto', 'target-temperature') | first %}
+{% endif %}
+{% if has_mode %}
+{% set mode_prop = device.spec_data.properties | selectattr('name', 'equalto', 'mode') | first %}
+{% endif %}
+{% if has_fan_level %}
+{% set fan_prop = device.spec_data.properties | selectattr('name', 'equalto', 'fan-level') | first %}
+{% endif %}
+
+{% include "devices/components/breadcrumb.html" %}
+
+<div x-data="thermostatControl()">
+    {% include "devices/components/device_header.html" %}
+
+    <div :class="!on && 'opacity-40 pointer-events-none'" class="transition-opacity duration-300">
+
+        {% if has_temp or has_target_temp %}
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            {% if has_temp %}
+            <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 text-center">
+                <p class="text-xs text-slate-400 dark:text-slate-500 mb-1">室内温度</p>
+                <div class="flex items-end justify-center gap-0.5">
+                    <span class="text-[3.5rem] leading-none font-extralight tracking-tight text-slate-700 dark:text-slate-200" x-text="currentTemp"></span>
+                    <span class="text-lg text-slate-300 mb-2">°C</span>
+                </div>
+                {% if has_humidity %}
+                <p class="text-xs text-slate-400 mt-1">湿度: <span x-text="humidity"></span>%</p>
+                {% else %}
+                <p class="text-xs text-slate-300 mt-1">&nbsp;</p>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% if has_target_temp %}
+            <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 text-center">
+                <p class="text-xs text-slate-400 dark:text-slate-500 mb-1">目标温度</p>
+                <div class="flex items-end justify-center gap-0.5">
+                    <span class="text-[3.5rem] leading-none font-extralight tracking-tight text-cyan-500" x-text="targetTemp"></span>
+                    <span class="text-lg text-slate-300 mb-2">°C</span>
+                </div>
+                <p class="text-xs text-slate-300 mt-1">&nbsp;</p>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if has_target_temp %}
+        <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700/50 mb-4">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200">温度调节</h3>
+                <span class="text-sm font-bold text-cyan-500" x-text="targetTemp + '°C'"></span>
+            </div>
+            <input type="range" min="{{ target_prop.range[0] }}" max="{{ target_prop.range[1] }}" step="{{ target_prop.range[2] if target_prop.range|length > 2 else 1 }}"
+                   x-model.number="targetTemp"
+                   @change="setProp('target-temperature', targetTemp)"
+                   class="w-full h-2 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer
+                          [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6
+                          [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-cyan-500 [&::-webkit-slider-thumb]:shadow-md
+                          [&::-webkit-slider-thumb]:cursor-pointer">
+            <div class="flex justify-between mt-2 text-xs text-slate-300">
+                <span>{{ target_prop.range[0] }}°C</span>
+                <span>{{ ((target_prop.range[0] + target_prop.range[1]) / 2)|int }}°C</span>
+                <span>{{ target_prop.range[1] }}°C</span>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if has_mode and mode_prop.value_list %}
+        <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 mb-4">
+            <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">模式</h3>
+            <div class="grid grid-cols-{{ mode_prop.value_list|length if mode_prop.value_list|length <= 5 else 5 }} gap-2">
+                {% for item in mode_prop.value_list %}
+                <button class="py-2 px-2 rounded-xl text-sm font-medium transition-all duration-200 border"
+                        :class="mode === {{ item.value }} ? 'bg-cyan-500 text-white border-cyan-500 shadow-sm' : 'bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:bg-slate-100'"
+                        @click="mode = {{ item.value }}; setProp('mode', {{ item.value }})">
+                    {{ item.desc_zh_cn or item.description }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if has_fan_level and fan_prop.value_list %}
+        <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 mb-4">
+            <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">风速</h3>
+            <div class="grid grid-cols-{{ fan_prop.value_list|length if fan_prop.value_list|length <= 4 else 4 }} gap-2">
+                {% for item in fan_prop.value_list %}
+                <button class="py-2 px-3 rounded-xl text-sm font-medium transition-all duration-200 border"
+                        :class="fanLevel === {{ item.value }} ? 'bg-cyan-500 text-white border-cyan-500 shadow-sm' : 'bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:bg-slate-100'"
+                        @click="fanLevel = {{ item.value }}; setProp('fan-level', {{ item.value }})">
+                    {{ item.desc_zh_cn or item.description }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if has_swing or has_indicator %}
+        <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50 space-y-4">
+            {% if has_swing %}
+            <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200">上下摆风</h3>
+                <div class="w-[52px] h-[28px] rounded-full relative cursor-pointer transition-colors duration-300"
+                     :class="swing ? 'bg-cyan-500' : 'bg-slate-300 dark:bg-slate-600'"
+                     @click="swing = !swing; setProp('vertical-swing', swing)">
+                    <div class="w-[22px] h-[22px] rounded-full bg-white absolute top-[3px] transition-all duration-300 shadow"
+                         :class="swing ? 'left-[27px]' : 'left-[3px]'"></div>
+                </div>
+            </div>
+            {% endif %}
+            {% if has_indicator %}
+            <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200">指示灯</h3>
+                <div class="w-[52px] h-[28px] rounded-full relative cursor-pointer transition-colors duration-300"
+                     :class="indicatorLight ? 'bg-cyan-500' : 'bg-slate-300 dark:bg-slate-600'"
+                     @click="indicatorLight = !indicatorLight; setProp('indicator-light-on', indicatorLight)">
+                    <div class="w-[22px] h-[22px] rounded-full bg-white absolute top-[3px] transition-all duration-300 shadow"
+                         :class="indicatorLight ? 'left-[27px]' : 'left-[3px]'"></div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% include "devices/components/device_js.html" %}
+<script>
+function thermostatControl() {
+    return {
+        on: false, loading: false,
+        currentTemp: '--', targetTemp: 24, humidity: '--',
+        mode: 0, fanLevel: 0,
+        swing: false, indicatorLight: false,
+
+        init() {
+            const load = (name, setter) => getPropValue(name).then(v => { if (v !== null) setter(v); }).catch(() => {});
+            load('on', v => this.on = v);
+            {% if has_temp %}load('temperature', v => this.currentTemp = v);{% endif %}
+            {% if has_target_temp %}load('target-temperature', v => this.targetTemp = v);{% endif %}
+            {% if has_humidity %}load('relative-humidity', v => this.humidity = v);{% endif %}
+            {% if has_mode %}load('mode', v => this.mode = v);{% endif %}
+            {% if has_fan_level %}load('fan-level', v => this.fanLevel = v);{% endif %}
+            {% if has_swing %}load('vertical-swing', v => this.swing = v);{% endif %}
+            {% if has_indicator %}load('indicator-light-on', v => this.indicatorLight = v);{% endif %}
+        }
+    }
+}
+
+function onDeviceUpdate(propName, value) {
+    const el = document.querySelector('[x-data="thermostatControl()"]');
+    if (!el) return;
+    const d = Alpine.$data(el);
+    switch (propName) {
+        case 'on': d.on = value; break;
+        case 'temperature': d.currentTemp = value; break;
+        case 'target-temperature': d.targetTemp = value; break;
+        case 'relative-humidity': d.humidity = value; break;
+        case 'mode': d.mode = value; break;
+        case 'fan-level': d.fanLevel = value; break;
+        case 'vertical-swing': d.swing = value; break;
+        case 'indicator-light-on': d.indicatorLight = value; break;
+    }
+}
+</script>
+{% endblock %}

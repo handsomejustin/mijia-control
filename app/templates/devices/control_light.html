@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}{{ device.name }} - 米家控制{% endblock %}
+
+{% block content %}
+{% set props = device.spec_data.properties | map(attribute='name') | list %}
+{% set has_brightness = 'brightness' in props %}
+{% set has_color_temp = 'color-temperature' in props %}
+{% set has_mode = 'mode' in props %}
+
+{% if has_brightness %}
+{% set bright_prop = device.spec_data.properties | selectattr('name', 'equalto', 'brightness') | first %}
+{% endif %}
+{% if has_color_temp %}
+{% set ct_prop = device.spec_data.properties | selectattr('name', 'equalto', 'color-temperature') | first %}
+{% endif %}
+{% if has_mode %}
+{% set mode_prop = device.spec_data.properties | selectattr('name', 'equalto', 'mode') | first %}
+{% endif %}
+
+{% include "devices/components/breadcrumb.html" %}
+
+<div x-data="lightControl()">
+    {% include "devices/components/device_header.html" %}
+
+    <div :class="!on && 'opacity-40 pointer-events-none'" class="transition-opacity duration-300">
+
+        {% if has_brightness %}
+        <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700/50 mb-4 text-center">
+            <p class="text-xs text-slate-400 dark:text-slate-500 mb-2">亮度</p>
+            <div class="flex items-end justify-center gap-0.5 mb-4">
+                <span class="text-[4rem] leading-none font-extralight tracking-tight text-amber-400" x-text="brightness"></span>
+                <span class="text-lg text-slate-300 mb-3">%</span>
+            </div>
+            <div class="relative max-w-xs mx-auto">
+                <input type="range" min="{{ bright_prop.range[0] }}" max="{{ bright_prop.range[1] }}" step="{{ bright_prop.range[2] if bright_prop.range|length > 2 else 1 }}"
+                       x-model.number="brightness"
+                       @change="setProp('brightness', brightness)"
+                       class="w-full h-2 rounded-lg appearance-none cursor-pointer bg-gradient-to-r from-slate-200 to-amber-400
+                              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6
+                              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-amber-400 [&::-webkit-slider-thumb]:shadow-md
+                              [&::-webkit-slider-thumb]:cursor-pointer">
+                <div class="flex justify-between mt-2 text-xs text-slate-300">
+                    <span>{{ bright_prop.range[0] }}%</span>
+                    <span>{{ bright_prop.range[1] }}%</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if has_color_temp %}
+        <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-5 shadow-sm border border-slate-100 dark:border-slate-700/50 mb-4">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200">色温</h3>
+                <span class="text-sm font-bold text-amber-500" x-text="colorTemp + 'K'"></span>
+            </div>
+            <div class="relative">
+                <input type="range" min="{{ ct_prop.range[0] }}" max="{{ ct_prop.range[1] }}" step="{{ ct_prop.range[2] if ct_prop.range|length > 2 else 1 }}"
+                       x-model.number="colorTemp"
+                       @change="setProp('color-temperature', colorTemp)"
+                       class="w-full h-2 rounded-lg appearance-none cursor-pointer bg-gradient-to-r from-amber-200 via-white to-blue-300
+                              [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6
+                              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-md
+                              [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-slate-300 [&::-webkit-slider-thumb]:cursor-pointer">
+                <div class="flex justify-between mt-2 text-xs text-slate-400">
+                    <span>暖白 {{ ct_prop.range[0] }}K</span>
+                    <span>冷白 {{ ct_prop.range[1] }}K</span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if has_mode and mode_prop.value_list %}
+        <div class="bg-white dark:bg-slate-800/50 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700/50">
+            <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">预设模式</h3>
+            <div class="grid grid-cols-{{ mode_prop.value_list|length if mode_prop.value_list|length <= 4 else 4 }} gap-2">
+                {% for item in mode_prop.value_list %}
+                <button class="py-2 px-3 rounded-xl text-sm font-medium transition-all duration-200 border"
+                        :class="activeMode === {{ item.value }} ? 'bg-blue-500 text-white border-blue-500 shadow-sm' : 'bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600'"
+                        @click="activeMode = {{ item.value }}; setProp('mode', {{ item.value }})">
+                    {{ item.desc_zh_cn or item.description }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% include "devices/components/device_js.html" %}
+<script>
+function lightControl() {
+    return {
+        on: false, loading: false,
+        brightness: 50,
+        colorTemp: 4000,
+        activeMode: null,
+
+        init() {
+            const load = (name, setter) => getPropValue(name).then(v => { if (v !== null) setter(v); }).catch(() => {});
+            load('on', v => this.on = v);
+            {% if has_brightness %}load('brightness', v => this.brightness = v);{% endif %}
+            {% if has_color_temp %}load('color-temperature', v => this.colorTemp = v);{% endif %}
+            {% if has_mode %}load('mode', v => this.activeMode = v);{% endif %}
+        }
+    }
+}
+
+function onDeviceUpdate(propName, value) {
+    const el = document.querySelector('[x-data="lightControl()"]');
+    if (!el) return;
+    const d = Alpine.$data(el);
+    switch (propName) {
+        case 'on': d.on = value; break;
+        case 'brightness': d.brightness = value; break;
+        case 'color-temperature': d.colorTemp = value; break;
+        case 'mode': d.activeMode = value; break;
+    }
+}
+</script>
+{% endblock %}
