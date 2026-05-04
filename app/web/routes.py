@@ -23,6 +23,32 @@ def _check_csrf():
     return False
 
 
+def _device_breadcrumb(user_id: int, device: dict) -> dict | None:
+    """查找设备所属的家庭和房间，返回面包屑上下文"""
+    try:
+        homes = HomeService.list_homes(user_id)
+    except Exception:
+        return None
+
+    home_id = device.get("home_id")
+    did = str(device["did"])
+    for home in homes:
+        if home["home_id"] != home_id:
+            continue
+        for room in (home.get("room_list") or []):
+            if did in [str(d) for d in room.get("dids", [])]:
+                return {
+                    "home": {"home_id": home["home_id"], "name": home["name"]},
+                    "room": {"id": room["id"], "name": room["name"]},
+                }
+    # 设备属于该家庭但不在任何房间中
+    if home_id:
+        for home in homes:
+            if home["home_id"] == home_id:
+                return {"home": {"home_id": home["home_id"], "name": home["name"]}, "room": None}
+    return None
+
+
 def register_routes(bp):
     @bp.route("/")
     @login_required
@@ -33,7 +59,9 @@ def register_routes(bp):
             xiaomi_status = XiaomiAuthService.get_status(current_user.id)
         except Exception:
             homes, devices, xiaomi_status = [], [], {"linked": False}
-        return render_template("dashboard/index.html", homes=homes, devices=devices, xiaomi_status=xiaomi_status)
+        return render_template(
+            "dashboard/index.html", homes=homes, devices=devices, xiaomi_status=xiaomi_status
+        )
 
     @bp.route("/login", methods=["GET", "POST"])
     def login():
@@ -111,10 +139,24 @@ def register_routes(bp):
         refresh = request.args.get("refresh", "false") == "true"
         try:
             device_list = DeviceService.list_devices(current_user.id, home_id=home_id, refresh=refresh)
+            homes = HomeService.list_homes(current_user.id)
         except Exception as e:
             flash(f"获取设备列表失败: {e}", "error")
-            device_list = []
-        return render_template("devices/list.html", devices=device_list)
+            device_list, homes = [], []
+        # 精简设备数据用于 Alpine.js（去掉 spec_data 避免序列化过大）
+        light_devices = [
+            {
+                "did": d["did"],
+                "name": d["name"],
+                "model": d.get("model"),
+                "home_id": d.get("home_id"),
+                "is_online": d.get("is_online"),
+            }
+            for d in device_list
+        ]
+        return render_template(
+            "devices/list.html", devices=device_list, light_devices=light_devices, homes=homes, current_home_id=home_id
+        )
 
     @bp.route("/devices/<did>")
     @login_required
@@ -124,7 +166,13 @@ def register_routes(bp):
         except Exception as e:
             flash(f"获取设备信息失败: {e}", "error")
             return redirect(url_for("web.devices"))
-        return render_template("devices/control.html", device=device, go2rtc_url=current_app.config.get("GO2RTC_URL", ""))
+
+        # 查找设备所属的家庭和房间，用于面包屑导航
+        breadcrumb = _device_breadcrumb(current_user.id, device)
+        return render_template(
+            "devices/control.html", device=device, go2rtc_url=current_app.config.get("GO2RTC_URL", ""),
+            breadcrumb=breadcrumb,
+        )
 
     @bp.route("/camera-proxy/<path:path>", methods=["GET", "POST"])
     @login_required
@@ -170,6 +218,19 @@ def register_routes(bp):
             flash(f"获取家庭列表失败: {e}", "error")
             home_list = []
         return render_template("homes/detail.html", homes=home_list)
+
+    @bp.route("/homes/<home_id>/rooms/<room_id>")
+    @login_required
+    def room_devices(home_id, room_id):
+        try:
+            data = HomeService.get_room_devices(current_user.id, home_id, room_id)
+        except ValueError as e:
+            flash(str(e), "error")
+            return redirect(url_for("web.homes"))
+        except Exception as e:
+            flash(f"获取房间设备失败: {e}", "error")
+            return redirect(url_for("web.homes"))
+        return render_template("homes/room.html", **data)
 
     # --- Device Groups ---
     @bp.route("/groups")

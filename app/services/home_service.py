@@ -37,6 +37,33 @@ class HomeService:
         }
 
     @staticmethod
+    def get_room_devices(user_id: int, home_id: str, room_id: str) -> dict:
+        """获取指定房间下的设备列表"""
+        from app.services.device_service import DeviceService
+
+        home = HomeCache.query.filter_by(user_id=user_id, home_id=home_id).first()
+        if not home:
+            raise ValueError(f"家庭 {home_id} 未找到")
+
+        room = None
+        for r in (home.room_list or []):
+            if str(r.get("id")) == str(room_id):
+                room = r
+                break
+        if not room:
+            raise ValueError(f"房间 {room_id} 未找到")
+
+        room_dids = set(str(d) for d in room.get("dids", []))
+        all_devices = DeviceService.list_devices(user_id, home_id=home_id)
+        room_devices = [d for d in all_devices if str(d["did"]) in room_dids]
+
+        return {
+            "home": {"home_id": home.home_id, "name": home.name},
+            "room": {"id": room_id, "name": room.get("name", ""), "icon": room.get("icon", "")},
+            "devices": room_devices,
+        }
+
+    @staticmethod
     def _refresh_homes(user_id: int) -> list[dict]:
         api = api_pool.get_api(user_id)
         homes_raw = api.get_homes_list()

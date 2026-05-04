@@ -10,17 +10,79 @@
     </a>
 </div>
 
+{# Build room-did mapping #}
+{% set ns = namespace(room_map={}) %}
+{% for home in homes %}
+    {% for room in (home.room_list or []) %}
+        {% for did in (room.dids or []) %}
+            {% set _ = ns.room_map.update({(did|string): room.name}) %}
+        {% endfor %}
+    {% endfor %}
+{% endfor %}
+
+{% if homes %}
+<div id="filter-tabs">
+    <!-- Home Tabs -->
+    <div class="flex items-center gap-1.5 mb-3 overflow-x-auto pb-1">
+        <button onclick="filterDevices(null)"
+                class="filter-home-tab px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors bg-brand-500 text-white shadow-sm">
+            全部
+        </button>
+        {% for home in homes %}
+        <button onclick="filterDevices('{{ home.home_id }}')"
+                data-home-id="{{ home.home_id }}"
+                class="filter-home-tab px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700">
+            {{ home.name }}
+        </button>
+        {% endfor %}
+    </div>
+
+    <!-- Room Tabs container -->
+    {% for home in homes %}
+    {% if home.room_list and home.room_list | length > 1 %}
+    <div class="filter-room-tabs hidden mb-4" data-for-home="{{ home.home_id }}">
+        <div class="flex items-center gap-1.5 overflow-x-auto pb-1">
+            <button onclick="filterRoom(null)"
+                    class="filter-room-tab px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 ring-1 ring-brand-200 dark:ring-brand-800">
+                全部房间
+            </button>
+            {% for room in home.room_list %}
+            <button onclick="filterRoom('{{ home.home_id }}', '{{ room.id }}')"
+                    data-room-id="{{ room.id }}"
+                    data-room-dids="{{ room.dids | join(',') if room.dids else '' }}"
+                    class="filter-room-tab px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300">
+                {{ room.name }} ({{ room.dids | length if room.dids else 0 }})
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Device count -->
+<div class="mb-3 text-xs text-slate-400 dark:text-slate-500">
+    <span id="device-count">{{ devices|length }} 台设备</span>
+</div>
+
+<!-- Device Grid -->
 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
     {% for device in devices %}
     <a href="{{ url_for('web.device_control', did=device.did) }}"
-       class="group bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 p-3 sm:p-4 hover:border-brand-300 dark:hover:border-brand-600 transition-all hover:shadow-sm {% if not device.is_online %}opacity-60{% endif %}">
+       class="device-card group bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 p-3 sm:p-4 hover:border-brand-300 dark:hover:border-brand-600 transition-all hover:shadow-sm {% if not device.is_online %}opacity-60{% endif %}"
+       data-home-id="{{ device.home_id }}"
+       data-did="{{ device.did }}">
         <div class="flex items-start gap-2 mb-2">
             <span class="mt-1.5 inline-block w-2 h-2 rounded-full shrink-0 {% if device.is_online %}bg-emerald-400{% else %}bg-slate-300 dark:bg-slate-600{% endif %}"></span>
             <span class="font-medium text-sm text-slate-900 dark:text-white leading-snug line-clamp-2">{{ device.name }}</span>
         </div>
         <p class="text-xs text-slate-400 dark:text-slate-500 truncate">{{ device.model or '未知型号' }}</p>
-        {% if device.home_id %}
-        <p class="text-xs text-slate-300 dark:text-slate-600 mt-1 truncate">{{ device.home_id }}</p>
+        {% if ns.room_map.get(device.did|string) %}
+        <p class="text-xs text-brand-500 dark:text-brand-400 mt-1 truncate">{{ ns.room_map[device.did|string] }}</p>
+        {% endif %}
+        {% if not device.is_online %}
+        <div class="mt-2 text-xs text-slate-400 dark:text-slate-500">离线</div>
         {% endif %}
     </a>
     {% endfor %}
@@ -31,4 +93,81 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    var currentHome = null;
+    var currentRoom = null;
+
+    window.filterDevices = function(homeId) {
+        currentHome = homeId;
+        currentRoom = null;
+
+        // Update home tab styles
+        document.querySelectorAll('.filter-home-tab').forEach(function(btn) {
+            var active = (!homeId && !btn.dataset.homeId) || btn.dataset.homeId === homeId;
+            btn.className = 'filter-home-tab px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ' +
+                (active ? 'bg-brand-500 text-white shadow-sm' : 'bg-slate-100 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700');
+        });
+
+        // Show/hide room tabs
+        document.querySelectorAll('.filter-room-tabs').forEach(function(el) {
+            el.classList.toggle('hidden', el.dataset.forHome !== homeId);
+        });
+
+        // Reset room tab styles
+        document.querySelectorAll('.filter-room-tab').forEach(function(btn, i) {
+            btn.className = 'filter-room-tab px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors ' +
+                (i === 0 ? 'bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 ring-1 ring-brand-200 dark:ring-brand-800'
+                         : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300');
+        });
+
+        applyFilter();
+    };
+
+    window.filterRoom = function(homeId, roomId) {
+        currentRoom = roomId;
+        if (homeId) currentHome = homeId;
+
+        // Update room tab styles within the active room tabs container
+        var container = document.querySelector('.filter-room-tabs[data-for-home="' + currentHome + '"]');
+        if (container) {
+            container.querySelectorAll('.filter-room-tab').forEach(function(btn) {
+                var active = (!roomId && !btn.dataset.roomId) || btn.dataset.roomId === roomId;
+                btn.className = 'filter-room-tab px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors ' +
+                    (active ? 'bg-brand-50 dark:bg-brand-900/20 text-brand-700 dark:text-brand-300 ring-1 ring-brand-200 dark:ring-brand-800'
+                             : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300');
+            });
+        }
+
+        applyFilter();
+    };
+
+    function applyFilter() {
+        var cards = document.querySelectorAll('.device-card');
+        var visibleCount = 0;
+
+        // Build dids set for room filter
+        var roomDids = null;
+        if (currentRoom) {
+            var roomBtn = document.querySelector('.filter-room-tab[data-room-id="' + currentRoom + '"]');
+            if (roomBtn && roomBtn.dataset.roomDids) {
+                roomDids = new Set(roomBtn.dataset.roomDids.split(','));
+            }
+        }
+
+        cards.forEach(function(card) {
+            var show = true;
+            if (currentHome && card.dataset.homeId !== currentHome) show = false;
+            if (show && roomDids && !roomDids.has(card.dataset.did)) show = false;
+            card.style.display = show ? '' : 'none';
+            if (show) visibleCount++;
+        });
+
+        document.getElementById('device-count').textContent = visibleCount + ' 台设备';
+    }
+})();
+</script>
 {% endblock %}

@@ -13,13 +13,25 @@
 <div class="space-y-4">
     {% for home in homes %}
     <div class="bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 p-5 sm:p-6">
-        <h2 class="font-heading text-lg font-semibold text-slate-900 dark:text-white mb-4">{{ home.name }}</h2>
+        <div class="flex items-center gap-2 mb-4">
+            <svg class="w-5 h-5 text-brand-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            <h2 class="font-heading text-lg font-semibold text-slate-900 dark:text-white">{{ home.name }}</h2>
+        </div>
         {% if home.room_list %}
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
             {% for room in home.room_list %}
-            <div class="rounded-lg border border-slate-200 dark:border-slate-700/50 p-3 hover:border-brand-300 dark:hover:border-brand-600 transition-colors">
-                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">{{ room.name }}</span>
-            </div>
+            <a href="{{ url_for('web.room_devices', home_id=home.home_id, room_id=room.id) }}"
+               class="group rounded-lg border border-slate-200 dark:border-slate-700/50 p-3 hover:border-brand-300 dark:hover:border-brand-600 hover:bg-brand-50/50 dark:hover:bg-brand-900/10 transition-all">
+                <div class="flex items-center gap-2 mb-1.5">
+                    <div class="w-7 h-7 rounded-md bg-slate-100 dark:bg-slate-700/50 flex items-center justify-center shrink-0 group-hover:bg-brand-100 dark:group-hover:bg-brand-900/20 transition-colors">
+                        {% with room = room %}
+                        {% include "includes/room_icon.html" %}
+                        {% endwith %}
+                    </div>
+                    <span class="text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-brand-700 dark:group-hover:text-brand-300 transition-colors truncate">{{ room.name }}</span>
+                </div>
+                <span class="text-xs text-slate-400 dark:text-slate-500">{{ room.dids | length if room.dids else 0 }} 台设备</span>
+            </a>
             {% endfor %}
         </div>
         {% else %}
