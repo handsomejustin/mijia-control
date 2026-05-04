@@ -1,0 +1,25 @@
+{% set has_on_prop = device.spec_data and device.spec_data.properties | selectattr('name', 'equalto', 'on') | list | length > 0 %}
+<div class="bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 p-5 sm:p-6 mb-4">
+    <div class="flex items-center justify-between">
+        <div>
+            <div class="flex items-center gap-3 mb-1">
+                <span id="device-online-dot" class="inline-block w-3 h-3 rounded-full {% if device.is_online %}bg-emerald-400{% else %}bg-slate-300 dark:bg-slate-600{% endif %}"></span>
+                <h1 class="font-heading text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{{ device.name }}</h1>
+            </div>
+            <p class="text-sm text-slate-500 dark:text-slate-400 ml-6">
+                型号: <span class="font-mono">{{ device.model or '未知' }}</span>
+            </p>
+        </div>
+        {% if has_on_prop %}
+        <div x-data="{ on: false, loading: false }" x-init="getPropValue('on').then(v => on = v)"
+             class="w-16 h-16 rounded-full flex items-center justify-center cursor-pointer transition-all duration-300 shrink-0"
+             :class="on ? 'bg-blue-500 shadow-[0_0_0_8px_rgba(59,130,246,0.15),0_4px_12px_rgba(59,130,246,0.3)]' : 'bg-slate-200 dark:bg-slate-700'"
+             :disabled="loading"
+             @click="on = !on; setProp('on', on)">
+            <svg class="w-7 h-7 transition-colors" :class="on ? 'text-white' : 'text-slate-400 dark:text-slate-500'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5.636 5.636a9 9 0 1012.728 0M12 3v6"/>
+            </svg>
+        </div>
+        {% endif %}
+    </div>
+</div>

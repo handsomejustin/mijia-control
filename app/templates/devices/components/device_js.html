@@ -1,0 +1,62 @@
+<script>
+const DID = '{{ device.did }}';
+const E = encodeURIComponent(DID);
+
+document.addEventListener('mijia-device-update', (event) => {
+    const update = event.detail;
+    if (update.did !== DID) return;
+    switch (update.type) {
+        case 'property_change': {
+            const {prop_name, value} = update.data;
+            if (typeof onDeviceUpdate === 'function') onDeviceUpdate(prop_name, value);
+            showToast(`${prop_name} → ${value}`, 'success');
+            break;
+        }
+        case 'action_executed': {
+            showToast(`动作 ${update.data.action_name} 已执行`, 'success');
+            break;
+        }
+    }
+});
+
+if (window._mijiaSocket) {
+    window._mijiaSocket.emit('subscribe_device', {did: DID});
+    window.addEventListener('beforeunload', () => {
+        window._mijiaSocket.emit('unsubscribe_device', {did: DID});
+    });
+}
+
+function getPropValue(propName) {
+    return fetch(`/api/devices/${E}/props/${propName}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) return data.data.value;
+            throw new Error(data.message);
+        });
+}
+
+function setProp(propName, value) {
+    return fetch(`/api/devices/${E}/props/${propName}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({value: value})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) showToast(`设置失败: ${data.message}`, 'error');
+    })
+    .catch(() => showToast('网络错误', 'error'));
+}
+
+function runAction(actionName) {
+    fetch(`/api/devices/${E}/actions/${actionName}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) showToast(`动作 ${actionName} 已执行`, 'success');
+        else showToast(`执行失败: ${data.message}`, 'error');
+    });
+}
+</script>
