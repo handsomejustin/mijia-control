@@ -1,3 +1,4 @@
+import os
 import sys
 
 if sys.platform == "win32":
@@ -6,4 +7,4 @@ if sys.platform == "win32":
 
 from mcp_server import mcp
 
-mcp.run()
+mcp.run(transport=os.environ.get("MCP_TRANSPORT", "stdio"))

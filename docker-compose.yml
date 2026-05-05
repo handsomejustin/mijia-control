@@ -38,11 +38,16 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.mcp
+    ports:
+      - "8000:8000"
     environment:
       - MIJIA_API_URL=http://web:5000/api
       - MIJIA_TOKEN=${MIJIA_TOKEN:-}
       - MIJIA_USERNAME=${MIJIA_USERNAME:-}
       - MIJIA_PASSWORD=${MIJIA_PASSWORD:-}
+      - MCP_TRANSPORT=streamable-http
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8000
     depends_on:
       - web
     restart: unless-stopped

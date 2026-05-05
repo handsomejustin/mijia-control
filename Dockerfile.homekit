@@ -10,6 +10,7 @@ COPY pyproject.toml .
 RUN pip install --no-cache-dir ".[homekit]"
 
 COPY app/ app/
+COPY config/ config/
 
 ENV PYTHONUNBUFFERED=1
 
