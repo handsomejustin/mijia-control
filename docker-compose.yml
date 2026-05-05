@@ -64,9 +64,9 @@ services:
       - MIJIA_PASSWORD=${MIJIA_PASSWORD:-}
       - HOMEKIT_PORT=${HOMEKIT_PORT:-51826}
       - HOMEKIT_PIN=${HOMEKIT_PIN:-123-45-678}
+      - HOMEKIT_PERSIST_FILE=/app/data/homekit.state
     volumes:
       - homekit_data:/app/data
-      - ./homekit.state:/app/homekit.state
       - ./homekit_mapping.yaml:/app/homekit_mapping.yaml:ro
     depends_on:
       - web
