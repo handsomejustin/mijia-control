@@ -45,6 +45,9 @@ ble = [
     "pycryptodome>=3.20",
     "httpx>=0.27",
 ]
+all = [
+    "mijia-control[dev,mcp,homekit,ble]",
+]
 
 [project.scripts]
 mijia-control = "mijia_cli:cli"
