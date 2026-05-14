@@ -5,13 +5,37 @@
 [![MCP Server](https://glama.ai/mcp/servers/handsomejustin/mijia-control/badges/score.svg)](https://glama.ai/mcp/servers/handsomejustin/mijia-control)
 [![GitHub license](https://img.shields.io/github/license/handsomejustin/mijia-control)](https://github.com/handsomejustin/mijia-control/blob/main/LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
-[![Version](https://img.shields.io/badge/version-1.0.2-green)](https://github.com/handsomejustin/mijia-control)
+[![Version](https://img.shields.io/badge/version-1.0.3-green)](https://github.com/handsomejustin/mijia-control)
 [![Flask](https://img.shields.io/badge/Flask-3.0%2B-black)](https://flask.palletsprojects.com/)
 [![GitHub stars](https://img.shields.io/github/stars/handsomejustin/mijia-control?style=social)](https://github.com/handsomejustin/mijia-control)
 [![GitHub issues](https://img.shields.io/github/issues/handsomejustin/mijia-control)](https://github.com/handsomejustin/mijia-control/issues)
 [![GitHub last commit](https://img.shields.io/github/last-commit/handsomejustin/mijia-control)](https://github.com/handsomejustin/mijia-control)
 
 米家 小米生态 × MCP x CLI × AI Agent × HomeKit 全桥接智能家居平台。
+
+## Changelog
+
+### v1.0.3 (2026-05-14)
+
+- **fix**: `SQLALCHEMY_DATABASE_URI` 增加 SQLite 默认值（`sqlite:///mijia.db`），未设置 `DATABASE_URL` 时不再崩溃
+- **fix**: Werkzeug 3.1+ 安全限制，`run.py` 添加 `allow_unsafe_werkzeug=True` 保障开发环境启动
+
+> **升级注意**：如果你之前使用 MySQL，不受影响。SQLite 仅在未配置 `DATABASE_URL` 时作为 fallback。
+> 若从 MySQL 首次切换到 SQLite（或新建 SQLite 数据库），需要执行 `flask db upgrade` 创建表，
+> 并通过 Web 界面或 `/api/auth/register` 注册用户，再绑定小米账号后方可使用设备控制功能。
+
+### v1.0.2 (2026-05-13)
+
+- **fix**: 修复 Jinja2 `search` 测试不存在导致的 500 错误
+
+### v1.0.1
+
+- **feat**: 专属设备控制页模板（灯光、取暖器、空调伴侣、传感器、开关、摄像头）
+- **feat**: 通用设备控制页使用共享组件和更好的 UI
+
+### v1.0.0
+
+- 初始发布
 
 > **致谢**：本项目底层使用了 [Do1e/mijia-api](https://github.com/Do1e/mijia-api)（mijiaAPI v3.0+）提供的 Python SDK，
 > 用于与小米云端进行设备通信、属性读写和场景执行。感谢原作者的开源贡献。
