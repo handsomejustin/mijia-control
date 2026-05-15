@@ -199,15 +199,22 @@ def register_routes(bp):
         try:
             proxies = {"http": None, "https": None}
             if request.method == "GET":
-                resp = http_requests.get(target, stream=True, proxies=proxies, timeout=30)
+                resp = http_requests.get(target, stream=True, proxies=proxies, timeout=(5, None))
             else:
-                resp = http_requests.post(target, data=request.get_data(), stream=True, proxies=proxies, timeout=30)
+                resp = http_requests.post(
+                    target, data=request.get_data(), stream=True, proxies=proxies, timeout=(5, None)
+                )
         except http_requests.ConnectionError:
             return Response("go2rtc 服务未启动", status=502)
 
-        excluded_headers = {"transfer-encoding", "connection"}
+        excluded_headers = {"transfer-encoding", "connection", "content-length"}
         headers = [(k, v) for k, v in resp.raw.headers.items() if k.lower() not in excluded_headers]
-        return Response(resp.iter_content(chunk_size=8192), status=resp.status_code, headers=headers)
+        return Response(
+            resp.iter_content(chunk_size=None),
+            status=resp.status_code,
+            headers=headers,
+            direct_passthrough=True,
+        )
 
     @bp.route("/scenes")
     @login_required
