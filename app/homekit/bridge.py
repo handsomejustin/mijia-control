@@ -109,7 +109,11 @@ def start_homekit_bridge(
     password = password or os.environ.get("MIJIA_PASSWORD", "")
     port = port or int(os.environ.get("HOMEKIT_PORT", _DEFAULT_PORT))
     pin = pin or os.environ.get("HOMEKIT_PIN", _DEFAULT_PIN)
-    persist_file = persist_file or os.path.join(os.path.dirname(__file__), "..", "..", _PERSIST_FILE)
+    persist_file = (
+        persist_file
+        or os.environ.get("HOMEKIT_PERSIST_FILE")
+        or os.path.join(os.path.dirname(__file__), "..", "..", _PERSIST_FILE)
+    )
 
     if not token and username and password:
         logger.info("自动登录获取 JWT token...")

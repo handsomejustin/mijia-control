@@ -10,11 +10,11 @@ COPY pyproject.toml .
 RUN pip install --no-cache-dir .
 
 COPY . .
-RUN pip install --no-cache-dir gunicorn[eventlet]
+RUN pip install --no-cache-dir simple-websocket
 
 EXPOSE 5000
 
 ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
 
-CMD ["gunicorn", "--worker-class", "eventlet", "-w", "1", "-b", "0.0.0.0:5000", "--access-logfile", "-", "app:create_app()"]
+CMD ["gunicorn", "--worker-class", "gthread", "--threads", "8", "-w", "1", "-b", "0.0.0.0:5000", "--access-logfile", "-", "app:create_app()"]

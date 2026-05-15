@@ -7,6 +7,8 @@ from mcp.server.fastmcp import FastMCP
 mcp = FastMCP(
     "mijia-control",
     instructions="米家智能家居设备控制 MCP Server。用于控制灯光、空调、扫地机等米家智能设备。",
+    host=os.environ.get("MCP_HOST", "127.0.0.1"),
+    port=int(os.environ.get("MCP_PORT", "8000")),
 )
 
 _BASE_URL = os.environ.get("MIJIA_API_URL", "http://127.0.0.1:5000/api")

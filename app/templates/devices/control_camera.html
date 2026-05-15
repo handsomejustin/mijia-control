@@ -21,21 +21,15 @@
     <div class="bg-white dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700/50 p-5 sm:p-6 mb-6">
         <h2 class="font-heading font-semibold text-lg text-slate-900 dark:text-white mb-3">实时画面</h2>
         <div id="camera-container" class="bg-black rounded-lg overflow-hidden" style="max-width: 800px;">
-            <img id="camera-player"
-                 src="/camera-proxy/api/stream.mjpeg?src={{ device.name | replace(' ', '_') }}"
-                 alt="摄像头画面"
-                 style="width:100%; display:block;"
-                 onerror="this.style.display='none'; document.getElementById('camera-fallback').style.display='block';">
-            <div id="camera-fallback" style="display:none;" class="text-center text-gray-400 py-12">
-                <p class="mb-2">视频流加载失败</p>
-                <a href="{{ go2rtc_url }}/stream.html?src={{ device.name | replace(' ', '_') }}&mode=webrtc"
-                   target="_blank" class="text-brand-400 hover:underline text-sm">在新窗口打开 WebRTC 播放器</a>
-            </div>
+            <iframe id="camera-player"
+                    src="{{ go2rtc_url }}/stream.html?src={{ device.name | replace(' ', '_') }}&mode=webrtc,mse"
+                    style="width:100%; aspect-ratio: 16/9; display:block; border:0;"
+                    allow="autoplay"></iframe>
         </div>
         <div class="flex items-center gap-3 mt-3">
-            <span class="text-xs text-slate-400 dark:text-slate-500">MJPEG (服务器转发)</span>
+            <span class="text-xs text-slate-400 dark:text-slate-500">WebRTC 低延迟</span>
             <a href="{{ go2rtc_url }}/stream.html?src={{ device.name | replace(' ', '_') }}&mode=webrtc"
-               target="_blank" class="text-brand-600 dark:text-brand-400 hover:underline text-sm ml-auto">WebRTC 低延迟</a>
+               target="_blank" class="text-brand-600 dark:text-brand-400 hover:underline text-sm ml-auto">在新窗口打开</a>
         </div>
     </div>
     {% endif %}

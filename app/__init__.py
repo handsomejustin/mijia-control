@@ -97,13 +97,18 @@ def _add_security_headers(app):
         response.headers["X-Frame-Options"] = "SAMEORIGIN"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        go2rtc_url = app.config.get("GO2RTC_URL", "")
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
-            "https://cdn.tailwindcss.com https://unpkg.com https://cdn.jsdelivr.net; "
-            "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; "
+            "https://cdn.tailwindcss.com https://unpkg.com https://cdn.jsdelivr.net "
+            "https://cdn.socket.io; "
+            "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com "
+            "https://fonts.googleapis.com; "
+            "font-src 'self' data: https://fonts.gstatic.com; "
             "img-src 'self' data: https:; "
             "connect-src 'self' ws: wss:; "
+            f"frame-src 'self' {go2rtc_url}; "
             "frame-ancestors 'self';"
         )
         if not app.debug:
